@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+build/
+dist/
+
+# Data and model artefacts never go into git (licensing + size).
+/data/
+/runs/
+*.tif
+*.tiff
+*.zip
+*.pt
+*.npz
+
+.ipynb_checkpoints/
+.DS_Store
+
+# Assistant tooling files are not part of this project.
+CLAUDE.md
+.claude/
