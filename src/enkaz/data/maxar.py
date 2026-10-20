@@ -104,3 +104,51 @@ def choose_post(
     first = min(dt.date.fromisoformat(r["date"]) for r in cands)
     window = [r for r in cands if (dt.date.fromisoformat(r["date"]) - first).days <= max_days_after]
     return min(window, key=lambda r: (r["off_nadir"] or 0, r["date"]))
+
+
+def post_items_for(
+    rows: Sequence[dict],
+    bbox: BBox,
+    event_date: str,
+    max_off_nadir: float = 45.0,
+    max_cloud: float = 10.0,
+    max_days_after: int = 10,
+) -> list[dict]:
+    """Post-event items (from one acquisition) to mosaic over ``bbox``.
+
+    Same preference as :func:`choose_post`, applied to acquisitions instead of single tiles,
+    so a tile straddling two Maxar ARD tiles is still covered. Acquisitions that fully cover
+    the bbox (by one item or by the union of their items) are preferred. Items that contain
+    the bbox come first.
+    """
+    import datetime as dt
+    from collections import defaultdict
+
+    from ..geo import bbox_intersects, union_bbox
+
+    cands = [
+        r
+        for r in rows
+        if phase(r, event_date) == "post"
+        and bbox_intersects(r["bbox"], bbox)
+        and (r["off_nadir"] or 0) <= max_off_nadir
+        and (r["cloud_percent"] or 0) <= max_cloud
+    ]
+    if not cands:
+        return []
+    acqs: dict[str, list[dict]] = defaultdict(list)
+    for r in cands:
+        acqs[r.get("acquisition", r.get("id", ""))].append(r)
+    full = {a: bbox_contains(union_bbox(x["bbox"] for x in its), bbox) for a, its in acqs.items()}
+    pool = {a: its for a, its in acqs.items() if full[a]} or acqs
+    first = min(dt.date.fromisoformat(its[0]["date"]) for its in pool.values())
+    window = {
+        a: its
+        for a, its in pool.items()
+        if (dt.date.fromisoformat(its[0]["date"]) - first).days <= max_days_after
+    }
+    best = min(
+        window.values(),
+        key=lambda its: (min(i["off_nadir"] or 0 for i in its), its[0]["date"]),
+    )
+    return sorted(best, key=lambda r: (not bbox_contains(r["bbox"], bbox), r["off_nadir"] or 0))

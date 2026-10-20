@@ -18,13 +18,18 @@ from .remotezip import RemoteZip, ZipEntry
 
 TURKEY_PREFIX = "turkey-earthquake_"
 ARCHIVES = {"target": "target.zip", "pre": "pre-event.zip"}
+# Per-building polygons (COCO format) for the train/val tiles of the CVPR 2026 MONTI release;
+# BRIGHT's held-out test tiles have none and fall back to connected components of the mask.
+INSTANCE_ARCHIVE = "cvprw26_trainval_instance_labels.zip"
 
 
-def members(rz: RemoteZip, prefix: str = TURKEY_PREFIX) -> list[ZipEntry]:
+def members(
+    rz: RemoteZip, prefix: str = TURKEY_PREFIX, suffixes: tuple[str, ...] = (".tif", ".tiff")
+) -> list[ZipEntry]:
     return [
         e
         for e in rz.entries()
-        if Path(e.name).name.startswith(prefix) and e.name.lower().endswith((".tif", ".tiff"))
+        if Path(e.name).name.startswith(prefix) and e.name.lower().endswith(suffixes)
     ]
 
 
