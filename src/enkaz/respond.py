@@ -54,7 +54,12 @@ def load_inventory(path: Path, bbox: Sequence[float] | None = None) -> dict:
     """Footprints from ``istanbul_inventory.py`` (or any npz with the same keys), optionally
     restricted to a lon/lat box."""
     with np.load(path, allow_pickle=False) as z:
-        inv = {k: z[k] for k in z.files}
+        return select(dict(z), bbox)
+
+
+def select(inv: dict, bbox: Sequence[float] | None = None) -> dict:
+    """Packed inventory arrays (as written by ``istanbul.read_buildings``) -> one ring per
+    building, optionally only the buildings whose centre is inside a lon/lat box."""
     keep = np.ones(len(inv["lon"]), bool)
     if bbox is not None:
         lon, lat = inv["lon"], inv["lat"]
@@ -205,8 +210,10 @@ def _scene_bounds(paths: Sequence[str], epsg: int) -> list[tuple]:
     return out
 
 
-def _covers(bounds: list[tuple], left: float, top: float, size: float) -> bool:
-    return any(geo.bbox_intersects(b, (left, top - size, left + size, top)) for b in bounds)
+def _overlapping(paths: Sequence[str], bounds: list[tuple], left: float, top: float, size: float):
+    """The scenes whose footprint meets the cell (opening every COG for every cell is slow)."""
+    cell = (left, top - size, left + size, top)
+    return [p for p, b in zip(paths, bounds) if geo.bbox_intersects(b, cell)]
 
 
 def cell_images(post: Sequence[str], pre: Sequence[str] | None, crs, left, top, shape):
@@ -265,19 +272,29 @@ def run(
     keys, inverse = np.unique(cells, axis=0, return_inverse=True)
     inverse = inverse.ravel()
 
-    bounds = _scene_bounds(post, epsg) if images is cell_images else None
+    real = images is cell_images
+    post_b = _scene_bounds(post, epsg) if real else None
+    pre_b = _scene_bounds(pre, epsg) if real and pre else None
     logits = np.zeros((n, 3), np.float32)
     usable = np.zeros(n, bool)
     post_valid = np.zeros(n, np.float32)
+    shift_m = np.zeros(n, np.float32)
     done = 0
     for k, key in enumerate(keys):
         left, top, h, w = cell_grid(key)
-        if bounds is not None and not _covers(bounds, left, top, h * RES):
-            continue
+        cell_post, cell_pre = post, pre
+        if real:
+            cell_post = _overlapping(post, post_b, left, top, h * RES)
+            cell_pre = _overlapping(pre, pre_b, left, top, h * RES) if pre else None
+            if not cell_post:
+                continue
         idx = np.flatnonzero(inverse == k)
-        pre_rgb, post_rgb, valid, _ = images(post, pre, f"EPSG:{epsg}", left, top, (h, w))
+        pre_rgb, post_rgb, valid, shift = images(
+            cell_post, cell_pre, f"EPSG:{epsg}", left, top, (h, w)
+        )
         if not valid.any():
             continue
+        shift_m[idx] = float(np.hypot(*shift)) * RES
         blds = footprints([rings[i] for i in idx], left, top)
         crops = P.tile_crops(pre_rgb, post_rgb, valid, np.zeros((h, w), np.uint8), blds)
         x_pre, x_post = model_inputs(
@@ -293,6 +310,9 @@ def run(
             log(f"  {k + 1}/{len(keys)} cells, {done:,} buildings ({time.time() - t0:.0f} s)")
     probs, pred, sev = calibrate(logits, temperature, bias)
     return {
+        "logits": logits,
+        "shift_m": shift_m,
+        "seconds": time.time() - t0,
         "probs": probs,
         "pred": pred,
         "severity": sev,

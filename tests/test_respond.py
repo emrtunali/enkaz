@@ -47,6 +47,43 @@ def test_join_leaves_ambiguous_names_unmatched():
     assert I.join_ibb(mah, rows) == {0: rows[0]}
 
 
+def test_assign_inside_then_nearest_within_tolerance():
+    pytest.importorskip("shapely")
+    import shapely
+
+    sq = shapely.box(29.0, 41.0, 29.0001, 41.0001)  # ~8 x 11 m
+    lon = np.array([29.00005, 29.000125, 29.0005])  # inside, ~2 m east, ~35 m east
+    lat = np.array([41.00005, 41.00005, 41.00005])
+    assert I.assign(lon, lat, [sq]).tolist() == [0, -1, -1]
+    assert I.assign(lon, lat, [sq], max_m=4).tolist() == [0, 0, -1]
+
+
+def test_quadkeys():
+    # Antakya lies in one zoom-9 tile; the file for it is listed under quadkey 122112011
+    assert I.quadkeys((36.10, 36.16, 36.22, 36.26)) == {"122112011"}
+    assert I.quadkeys((0.1, 0.1, 0.2, 0.2), zoom=1) == {"1"}
+    assert len(I.quadkeys((28.0, 40.8, 29.9, 41.4))) > 1  # Istanbul spans several
+
+
+def test_read_ms_footprints(tmp_path):
+    import gzip
+    import json
+
+    ring = [[29.0, 41.0], [29.0001, 41.0], [29.0001, 41.0001], [29.0, 41.0001], [29.0, 41.0]]
+    far = [[x + 5, y] for x, y in ring]
+    lines = [
+        {"type": "Feature", "properties": {}, "geometry": {"type": "Polygon", "coordinates": [r]}}
+        for r in (ring, far)
+    ]
+    p = tmp_path / "q.csv.gz"
+    with gzip.open(p, "wt") as f:
+        f.write("\n".join(json.dumps(x) for x in lines))
+    inv = I.read_ms_footprints([p])
+    assert len(inv["lon"]) == 1 and inv["osm_id"].tolist() == [-1]
+    assert inv["ring_off"].tolist() == [0, 5]
+    assert inv["area_m2"][0] == pytest.approx(8.4 * 11.1, rel=0.02)
+
+
 def test_ring_area():
     # 0.001° x 0.001° at 41° N is ~111.3 m x ~84.0 m
     lon = np.array([29.0, 29.001, 29.001, 29.0])

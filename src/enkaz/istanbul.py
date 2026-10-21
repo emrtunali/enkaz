@@ -20,6 +20,7 @@ import csv
 import io
 import math
 import re
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -116,6 +117,69 @@ def read_buildings(pbf: Path, bbox=BBOX) -> dict[str, np.ndarray]:
     }
 
 
+MS_LINKS = "https://minedbuildings.z5.web.core.windows.net/global-buildings/dataset-links.csv"
+
+
+def quadkeys(bbox, zoom: int = 9) -> set[str]:
+    """Bing-map quadkeys of the tiles meeting a lon/lat box (Microsoft's footprints are split
+    into one file per zoom-9 quadkey)."""
+
+    def tile(lon, lat):
+        s = math.sin(math.radians(lat))
+        x = int((lon + 180) / 360 * 2**zoom)
+        y = int((0.5 - math.log((1 + s) / (1 - s)) / (4 * math.pi)) * 2**zoom)
+        return x, y
+
+    (x0, y1), (x1, y0) = tile(bbox[0], bbox[1]), tile(bbox[2], bbox[3])
+    out = set()
+    for x in range(x0, x1 + 1):
+        for y in range(y0, y1 + 1):
+            out.add(
+                "".join(str(((x >> i) & 1) + 2 * ((y >> i) & 1)) for i in range(zoom - 1, -1, -1))
+            )
+    return out
+
+
+def read_ms_footprints(paths: Sequence[Path], bbox=BBOX) -> dict[str, np.ndarray]:
+    """Microsoft Global ML Building Footprints (``.csv.gz`` of GeoJSON lines, one file per zoom-9
+    quadkey) in the same packed form as :func:`read_buildings`. Ids are line numbers (negative,
+    so they never collide with OSM ids); storeys are unknown."""
+    import gzip
+    import json
+
+    ids, lon, lat, area, coords, offs = [], [], [], [], [], [0]
+    n = 0
+    for path in paths:
+        with gzip.open(path, "rt") as f:
+            for line in f:
+                n += 1
+                g = json.loads(line)["geometry"]
+                if g["type"] != "Polygon":
+                    continue
+                pts = np.asarray(g["coordinates"][0], dtype=np.float64)
+                cx, cy = pts[:-1].mean(axis=0)
+                if not _in_box(cx, cy, bbox):
+                    continue
+                ids.append(-n)
+                lon.append(cx)
+                lat.append(cy)
+                area.append(ring_area_m2(pts[:-1, 0], pts[:-1, 1]))
+                coords.append(pts.astype(np.float32))
+                offs.append(offs[-1] + len(pts))
+    k = len(ids)
+    return {
+        "osm_id": np.asarray(ids, np.int64),
+        "lon": np.asarray(lon),
+        "lat": np.asarray(lat),
+        "area_m2": np.asarray(area, np.float32),
+        "levels": np.full(k, np.nan, np.float32),
+        "kind": np.zeros(k, np.int16),
+        "kind_names": np.array(["ms_ml"]),
+        "ring": np.concatenate(coords) if coords else np.zeros((0, 2), np.float32),
+        "ring_off": np.asarray(offs, np.int64),
+    }
+
+
 def read_admin(pbf: Path, bbox=BBOX, levels=("6", "8")) -> list[dict]:
     """Administrative areas (districts = 6, mahalle = 8) whose label point is inside ``bbox``."""
     import osmium
@@ -168,14 +232,21 @@ def istanbul_units(admin: list[dict], districts: set[str]) -> tuple[list[dict], 
     return dist, mah
 
 
-def assign(lon: np.ndarray, lat: np.ndarray, polygons) -> np.ndarray:
-    """Index of the polygon containing each point, -1 if none."""
+def assign(lon: np.ndarray, lat: np.ndarray, polygons, max_m: float = 0.0) -> np.ndarray:
+    """Index of the polygon containing each point, -1 if none. With ``max_m`` > 0, points outside
+    every polygon take the nearest one within about that many metres (footprints from different
+    sources are often offset by a few metres)."""
     import shapely
 
     tree = shapely.STRtree(list(polygons))
-    pi, gi = tree.query(shapely.points(lon, lat), predicate="within")
+    pts = shapely.points(lon, lat)
+    pi, gi = tree.query(pts, predicate="within")
     out = np.full(len(lon), -1, np.int64)
     out[pi] = gi
+    if max_m > 0 and (out < 0).any():
+        rest = np.flatnonzero(out < 0)
+        pi, gi = tree.query_nearest(pts[rest], max_distance=max_m / 111_000, all_matches=False)
+        out[rest[pi]] = gi
     return out
 
 
