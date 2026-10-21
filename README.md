@@ -151,6 +151,51 @@ destroyed buildings along the river and in the old town are found, but the "dama
 * **One event, one region.** Building stock, imagery and labelling practice differ elsewhere.
 * **Non-commercial imagery licence** (CC BY-NC 4.0): the trained weights and derived maps inherit it.
 
+## Istanbul: ready for the next one
+
+Istanbul has no post-earthquake imagery and no damage labels, so the model's accuracy there cannot
+be measured. What can be prepared is everything around it.
+[**The Istanbul page**](https://emrtunali.github.io/enkaz/istanbul.html) maps it per mahalle.
+
+| | |
+|---|---|
+| Building footprints | **744,105** in the 39 districts, from OpenStreetMap (Geofabrik extract, outline + area + storeys where tagged) |
+| Boundaries | 39 districts, 964 mahalle (OpenStreetMap) |
+| İBB scenario (Mw 7.5, night) | joined for 937 of 959 mahalle: **46,598** very heavily or heavily and 142,523 moderately damaged buildings |
+| İBB building stock (2017) | age and height classes, joined for 559 of 571 mahalle |
+| Footprint coverage | median mahalle has **67 %** as many OSM buildings as İBB counts; the northern districts are far lower |
+
+İBB's tables carry no geometry, so they are joined to OSM boundaries by district and normalised
+mahalle name (`MAHALLESİ` and diacritics removed, *Eyüp* → *Eyüpsultan*). Ambiguous or renamed
+mahalle are left unmatched rather than guessed.
+
+On the day, [`enkaz.respond`](src/enkaz/respond.py) turns released post-event scenes into a ranking:
+
+```bash
+python -m enkaz.respond --inventory data/istanbul/buildings.npz \
+    --post scene.tif --pre reference.tif \
+    --checkpoint runs/main/post_only/best.pt --calibration runs/main/post_only/eval.json \
+    --out response/
+```
+
+Buildings are grouped into 600 m cells on the local UTM grid. Each cell's post image is resampled to
+0.35 m and aligned to a pre-event reference by phase correlation. The same pre/post/footprint crops
+as in training are cut, and the logits are calibrated with the İslahiye settings. The output is
+`ranking.csv` (every building, highest expected severity first), `top.geojson` (the first 5,000
+footprints for a field map) and `mahalle.csv`. The post-only model is the default: it needs no
+pre-event image to score buildings, and it held up better on Antakya. The pipeline is tested on
+synthetic rasters ([`tests/test_respond.py`](tests/test_respond.py)), not on Istanbul imagery.
+
+To rebuild the inventory (about 2 minutes on a laptop):
+
+```bash
+pip install -e ".[osm]"
+python scripts/istanbul_inventory.py turkey-latest.osm.pbf deprem-senaryosu.csv bina-sayilari.csv
+```
+
+The CSVs are İBB's open datasets *Deprem Senaryosu Analiz Sonuçları* and *Mahalle Bazlı Bina
+Sayıları*, from [data.ibb.gov.tr](https://data.ibb.gov.tr).
+
 ## Responsible use
 
 The output is a **ranking of where to look first**, meant to sit next to expert image analysts and
@@ -199,8 +244,10 @@ src/enkaz/
   learn.py       datasets, Siamese / post-only models, training and evaluation
   metrics.py     macro-F1, ECE, temperature and offset fitting, AUROC, top-k recall (NumPy only)
   export.py      test-city export for the web page
+  istanbul.py    Istanbul inventory: OSM footprints and boundaries, İBB scenario join
+  respond.py     post-event scenes + footprints + checkpoint -> ranked buildings
 notebooks/train.ipynb   the whole run, stage by stage
-scripts/                web export and README figures
+scripts/                web export, Istanbul inventory, README figures
 site/                   static web page (MapLibre), deployed to GitHub Pages
 tests/                  CPU-only unit tests
 ```
@@ -217,15 +264,16 @@ Ideas, roughly in order of expected value:
   satellite's viewing geometry, to reduce the few-metre residual shift that hurt the Siamese model.
 * **Stronger models.** Larger backbones, ensembles, and segmentation-style models that use more
   context around each footprint.
-* **Readiness for the next earthquake (Istanbul).** There is no event imagery or damage label for
-  Istanbul, so accuracy there cannot be measured, only prepared for: a city-wide building inventory
-  (OpenStreetMap, Microsoft / Google open buildings), recent pre-event imagery, and a pipeline that
-  takes a post-event scene and produces a ranked map within hours. District-level loss scenarios
-  published for Istanbul could serve as a prior for where to look first.
+* **Istanbul, next steps.** Fill footprint gaps with open machine-made footprints (Microsoft /
+  Google), prepare a recent pre-event reference mosaic, and run `enkaz.respond` end to end on a
+  real scene (for example a 2023 Antakya scene with OSM footprints) to time it and check its
+  ranking against the labels.
 
 ## Credits
 
 Imagery © Maxar Technologies, Maxar Open Data Program (CC BY-NC 4.0). Labels: BRIGHT (Chen et al.,
 2025). Reference gradings © European Union, Copernicus Emergency Management Service (EMSR648).
+Istanbul buildings and boundaries © OpenStreetMap contributors (ODbL); scenario estimates and
+building stock © İstanbul Büyükşehir Belediyesi (İBB Open Data Licence).
 
 In memory of the more than 50,000 people who lost their lives in Türkiye on 6 February 2023.

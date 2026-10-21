@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enkaz — Istanbul, before the next one</title>
+<meta name="description" content="What a building-damage model would need on the day of an Istanbul earthquake: a footprint inventory, İBB's scenario estimates per mahalle, and a ranking pipeline.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+<header class="masthead">
+  <a class="brand" href="./">Enkaz</a>
+  <nav><a href="./">Antakya</a><a href="#map">Map</a><a href="#day">On the day</a><a href="#limits">Limits</a><a href="https://github.com/emrtunali/enkaz">Code</a></nav>
+</header>
+
+<section class="hero">
+  <p class="kicker">Istanbul · preparing, not predicting</p>
+  <h1>Istanbul, before the next one</h1>
+  <p class="lede">The model was tested on a city it had never seen. Istanbul has no post-earthquake
+    images and no damage labels, so its accuracy there cannot be measured. What can be done now is
+    to have everything else ready: every mapped building, the official scenario estimates per
+    neighbourhood, and a pipeline that turns the first post-event images into a list of buildings to
+    check first.</p>
+  <div class="stats" id="stats"></div>
+</section>
+
+<section id="map" class="band alt">
+  <div class="col wide">
+    <h2>964 neighbourhoods</h2>
+    <p>Each shape is a mahalle. <em>Scenario</em> shows İBB's estimate of very heavily and heavily
+      damaged buildings for a Mw 7.5 night-time earthquake. <em>Old stock</em> is the share of
+      buildings built before 1980 (İBB, 2017). <em>Footprints</em> compares the buildings mapped in
+      OpenStreetMap with İBB's count: the image model can only score buildings that have a footprint.</p>
+    <div class="seg" id="mapSeg">
+      <button data-v="scenario" class="on">Scenario</button><button data-v="old">Old stock</button><button data-v="cov">Footprints</button>
+    </div>
+    <div id="mapview"></div>
+    <div class="legend" id="legend"></div>
+  </div>
+</section>
+
+<section id="day" class="band">
+  <div class="col">
+    <h2>On the day</h2>
+    <ol class="steps">
+      <li><strong>Before images arrive.</strong> The scenario layer and the building inventory say
+        where heavy damage is most likely and how many buildings each mahalle has.</li>
+      <li><strong>First post-event scene.</strong> Released scenes (for example through the Maxar Open
+        Data Program, as in 2023) are cut into 600 m cells on the local UTM grid at 0.35 m and
+        aligned to a pre-event reference image.</li>
+      <li><strong>Every mapped building is scored</strong> with the model trained on the 2023
+        earthquakes. Probabilities are calibrated with the settings fitted on the validation city.</li>
+      <li><strong>Output: a ranking, not a verdict.</strong> Buildings sorted by expected severity, a
+        GeoJSON of the first few thousand for a field map, and a per-mahalle summary next to the
+        scenario numbers. In Antakya, the top 10 % of such a ranking held about half of all destroyed
+        buildings.</li>
+    </ol>
+    <pre class="cmd">python -m enkaz.respond --inventory data/istanbul/buildings.npz \
+    --post scene.tif --pre reference.tif \
+    --checkpoint post_only/best.pt --calibration post_only/eval.json \
+    --out response/</pre>
+  </div>
+</section>
+
+<section id="limits" class="band alt">
+  <div class="col">
+    <h2>What this is not</h2>
+    <ul class="limits">
+      <li><strong>Not a forecast of the model's accuracy in Istanbul.</strong> Building stock, roof types and
+        image conditions differ from the 2023 cities; a few hundred quickly graded buildings would be
+        needed to check thresholds on the day.</li>
+      <li><strong>The scenario is a planning estimate</strong> from İBB's loss model, not an observation, and
+        it is shown here for one earthquake scenario only.</li>
+      <li><strong>Footprints are incomplete.</strong> Where OpenStreetMap has far fewer buildings than İBB
+        counts, the missing ones are invisible to the pipeline. Open machine-made footprints could
+        fill the gaps.</li>
+      <li><strong>Names, not codes.</strong> İBB's tables are joined to OpenStreetMap boundaries by district
+        and mahalle name; 937 of 959 rows match, the rest are left out rather than guessed.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Buildings and boundaries © OpenStreetMap contributors (ODbL), via Geofabrik. Scenario estimates and
+    building stock: İstanbul Büyükşehir Belediyesi Açık Veri Portalı (İBB Open Data Licence). Basemap ©
+    OpenStreetMap contributors, OpenFreeMap.</p>
+</footer>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="istanbul.js"></script>
+</body>
+</html>
