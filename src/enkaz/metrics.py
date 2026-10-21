@@ -122,3 +122,34 @@ def report(
         "auroc_damaged_or_destroyed": binary_auroc(score, y > 0),
         "destroyed_recall_top10pct": recall_at_fraction(score, y, 2, 0.10),
     }
+
+
+def cluster_bootstrap(groups: np.ndarray, stat, n: int = 1000, seed: int = 0) -> np.ndarray:
+    """``stat(idx)`` over ``n`` resamples that draw whole groups (image tiles) with replacement.
+
+    Neighbouring buildings share an image, its alignment error and often the same damage, so
+    resampling single buildings would understate the uncertainty.
+    """
+    rng = np.random.default_rng(seed)
+    _, inv = np.unique(groups, return_inverse=True)
+    members = [np.flatnonzero(inv == g) for g in range(inv.max() + 1)]
+    out = []
+    for _ in range(n):
+        pick = rng.integers(0, len(members), len(members))
+        out.append(stat(np.concatenate([members[g] for g in pick])))
+    return np.asarray(out)
+
+
+def interval(samples: np.ndarray, level: float = 0.95) -> dict:
+    """Mean and percentile interval of bootstrap samples (per column if 2-D)."""
+    a = (1 - level) / 2
+    lo, hi = np.quantile(samples, [a, 1 - a], axis=0)
+    return {"mean": np.mean(samples, axis=0).tolist(), "lo": lo.tolist(), "hi": hi.tolist()}
+
+
+def headline(logits: np.ndarray, y: np.ndarray, temperature: float, bias) -> np.ndarray:
+    """The four numbers the README reports: macro-F1, AUROC, destroyed-in-top-10 %, ECE."""
+    r = report(logits, y, temperature, bias)
+    return np.array(
+        [r["macro_f1"], r["auroc_damaged_or_destroyed"], r["destroyed_recall_top10pct"], r["ece"]]
+    )

@@ -88,3 +88,18 @@ def test_bias_recovers_rare_class():
     assert M.report(logits, y)["f1"]["damaged"] == 0.0
     bias = M.fit_bias(logits, y)
     assert bias[1] > 0 and M.report(logits, y, bias=bias)["f1"]["damaged"] > 0.9
+
+
+def test_cluster_bootstrap_resamples_whole_groups():
+    groups = np.array([0, 0, 0, 1, 1, 2])
+    sizes = M.cluster_bootstrap(groups, len, n=200, seed=1)
+    # every resample is a sum of three group sizes drawn from {3, 2, 1}
+    assert set(np.unique(sizes)) <= {3, 4, 5, 6, 7, 8, 9}
+    assert sizes.min() < 6 < sizes.max()
+
+
+def test_interval_covers_the_mean():
+    s = np.random.default_rng(0).normal(0.5, 0.01, (1000, 2))
+    iv = M.interval(s)
+    assert iv["lo"][0] < iv["mean"][0] < iv["hi"][0]
+    assert iv["hi"][1] - iv["lo"][1] == pytest.approx(4 * 0.01, rel=0.15)

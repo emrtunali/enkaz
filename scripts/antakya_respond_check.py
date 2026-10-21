@@ -165,5 +165,6 @@ def stage_check():
     return {k: v for k, v in out.items() if k in ("inventory", "scenes")}
 
 
-print(runner.run("respond_check", stage_check, version="2"))
-print(json.dumps(json.loads((runs / "respond_check.json").read_text()), indent=1)[:4000])
+if not globals().get("DEFINE_ONLY"):  # improvements.py reuses the helpers above
+    print(runner.run("respond_check", stage_check, version="2"))
+    print(json.dumps(json.loads((runs / "respond_check.json").read_text()), indent=1)[:4000])
