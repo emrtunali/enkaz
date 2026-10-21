@@ -18,6 +18,15 @@ measured on **Antakya**, a city held out completely from training and model sele
 > pipeline, alignment, training and evaluation on the held-out city. See
 > [Limitations](#limitations): this is not an operational damage-assessment product.
 
+**[Open the interactive page →](https://emrtunali.github.io/enkaz/)** (before/after slider, Antakya
+map with model vs expert labels, results).
+
+![Before/after crops from Antakya with the expert label and the model's prediction](docs/gallery.png)
+
+*Six buildings from the held-out test city. The outline is the building footprint the model is asked
+about. The last two are errors: a collapse that looks like an intact roof from above, and an intact
+building called destroyed.*
+
 ## Data
 
 | Source | What it gives | Licence |
@@ -60,6 +69,20 @@ flowchart LR
    jitter, and a ±3 px random shift to tolerate residual misalignment. 8 epochs on a Colab T4.
 6. **Calibration and decision rule.** Temperature scaling and per-class logit offsets are fitted on
    the validation city (İslahiye) only, then applied unchanged to the test city.
+
+### Training details
+
+| | |
+|---|---|
+| Input | 128 × 128 px crop per building (~45 m), RGB + footprint mask as a 4th channel |
+| Encoder | ResNet-34, ImageNet weights ([timm](https://github.com/huggingface/pytorch-image-models)); shared between pre and post in the Siamese model |
+| Optimiser | AdamW, lr 3·10⁻⁴, weight decay 0.05, one-cycle schedule (10 % warm-up) |
+| Loss | cross-entropy, label smoothing 0.05 |
+| Sampling | class-balanced, weights ∝ √(class count) |
+| Batch / epochs | 128 / 8, mixed precision (fp16) |
+| Model selection | best validation macro-F1 over epochs, on İslahiye |
+| Hardware / time | one Colab T4: 54 min (Siamese), 51 min (post-only) |
+| Data volume | ~127 k buildings in 1,114 tiles; crops stored as compressed `.npz` on Google Drive |
 
 ## Geographic split
 
@@ -107,8 +130,13 @@ What this says:
 * **Calibration does not transfer perfectly either.** ECE is ≈ 0.01 on the validation city where
   the temperature was fitted, and 0.08–0.12 on Antakya.
 
-The [web page](https://emrtunali.github.io/enkaz/) shows the Antakya map and a before/after gallery of correct and wrong
-predictions, using the model the protocol selected.
+![Antakya: model prediction next to the expert labels](docs/antakya.png)
+
+The map uses the model the protocol selected (Siamese + İslahiye thresholds). The dense clusters of
+destroyed buildings along the river and in the old town are found, but the "damaged" offset tuned on
+İslahiye paints much of the city orange, the transfer problem described above. The
+[web page](https://emrtunali.github.io/enkaz/) has the same map interactively (with a
+*Disagreements* view) and a before/after gallery of correct and wrong predictions.
 
 ## Limitations
 
@@ -123,17 +151,77 @@ predictions, using the model the protocol selected.
 * **One event, one region.** Building stock, imagery and labelling practice differ elsewhere.
 * **Non-commercial imagery licence** (CC BY-NC 4.0): the trained weights and derived maps inherit it.
 
+## Responsible use
+
+The output is a **ranking of where to look first**, meant to sit next to expert image analysts and
+field teams, not to replace them. It must not be used to declare a building safe, to decide
+compensation or demolition, or to stop a search. Probabilities are calibrated on one city and drift
+on another (see ECE above), so thresholds should be re-checked against a few hundred quickly graded
+buildings in every new area before they are trusted.
+
 ## Reproduce
 
 Everything runs from [`notebooks/train.ipynb`](notebooks/train.ipynb) on Google Colab (T4 GPU,
 Google Drive for persistent storage). Every stage writes a marker to Drive and is skipped when the
 notebook is re-run, so a disconnected session resumes where it stopped.
 
+1. Open the notebook in Colab (*File → Open notebook → GitHub*, `emrtunali/enkaz`) and pick a
+   **T4 GPU** runtime.
+2. Run **0.1–0.3**: mount Drive, clone and install the code, check the GPU. Everything persistent
+   goes to `MyDrive/enkaz`.
+3. Run **1.x** (catalogues, ~5 min) and **2.x** (BRIGHT Türkiye download and tile index).
+4. Run **3.x**: alignment and crops for all tiles. This is the longest data stage; it resumes per
+   tile if the session drops.
+5. Run **4.1–4.3**: splits, a one-batch smoke test, then both models (~1 h each on a T4; resumes from
+   the last epoch).
+6. Run **5.1** (evaluation → `runs/main/results.json`) and **5.2** (web export →
+   `runs/main/site_export.zip`). Unzip the export into `site/data/` to update the web page, then
+   `python scripts/readme_figures.py` to redraw the README figures.
+
+Locally, without a GPU or network:
+
 ```bash
 pip install -e ".[dev]"
 pytest -q          # CPU-only tests, no network
 ruff check .
 ```
+
+## Project structure
+
+```
+src/enkaz/
+  data/          Maxar STAC crawler, BRIGHT download (remote zip), Copernicus EMS, provinces
+  config.py      storage roots (fast local disk vs Google Drive)
+  geo.py         bounding boxes, distances, UTM zones
+  prepare.py     phase-correlation co-registration, building extraction, crop packing
+  pipeline.py    per-tile run (rasterio): pick post scene, resample, align, write crops
+  stages.py      resumable stage runner (markers on Drive)
+  learn.py       datasets, Siamese / post-only models, training and evaluation
+  metrics.py     macro-F1, ECE, temperature and offset fitting, AUROC, top-k recall (NumPy only)
+  export.py      test-city export for the web page
+notebooks/train.ipynb   the whole run, stage by stage
+scripts/                web export and README figures
+site/                   static web page (MapLibre), deployed to GitHub Pages
+tests/                  CPU-only unit tests
+```
+
+## Roadmap
+
+Ideas, roughly in order of expected value:
+
+* **Ranking-first output.** The ranking transfers between cities better than any threshold. Report
+  "inspect these N buildings first" per neighbourhood instead of a hard three-class map.
+* **SAR as a second post-event view.** BRIGHT already includes post-event SAR, which sees through
+  cloud and at night and is not affected by off-nadir lean the same way optical is.
+* **Better alignment.** Per-building local co-registration, or footprints projected with the
+  satellite's viewing geometry, to reduce the few-metre residual shift that hurt the Siamese model.
+* **Stronger models.** Larger backbones, ensembles, and segmentation-style models that use more
+  context around each footprint.
+* **Readiness for the next earthquake (Istanbul).** There is no event imagery or damage label for
+  Istanbul, so accuracy there cannot be measured, only prepared for: a city-wide building inventory
+  (OpenStreetMap, Microsoft / Google open buildings), recent pre-event imagery, and a pipeline that
+  takes a post-event scene and produces a ranked map within hours. District-level loss scenarios
+  published for Istanbul could serve as a prior for where to look first.
 
 ## Credits
 
