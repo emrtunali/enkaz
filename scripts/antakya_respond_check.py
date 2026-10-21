@@ -9,6 +9,8 @@ Runs the response pipeline the way it would run in Istanbul and scores it agains
 * the post-only checkpoint and the İslahiye calibration, unchanged.
 
 Two variants: without alignment, and aligned to a mosaic of the latest pre-event Maxar scenes.
+The main configuration, fixed before looking at any result, is aligned + test-time augmentation
+(8 rotations/flips averaged); single-view scores are reported next to it.
 Every labelled test building is given the score of the footprint that contains it (or the nearest
 one within 4 m); the rest are reported as not covered. The reference is the evaluation pipeline
 (BRIGHT polygons, co-registered crops) on the same buildings.
@@ -111,7 +113,12 @@ def stage_check():
     cal = json.loads((runs / "post_only" / "eval.json").read_text())["val_bias"]
     t, bias = cal["temperature"], cal["bias"]
     ref = np.load(runs / "post_only" / "test_logits.npz")["logits"]
-    predict = R.torch_predictor("post_only", runs / "post_only" / "best.pt")
+    tta = R.torch_predictor("post_only", runs / "post_only" / "best.pt", tta=True)
+    plain = R.torch_predictor("post_only", runs / "post_only" / "best.pt")
+
+    def predict(a, b):  # one pass over the imagery, both scorings: [TTA | single view]
+        return np.hstack([tta(a, b), plain(a, b)])
+
     post, pre = scenes(bbox)
     out["scenes"] = {
         "post": sorted({r["acquisition"] for r in post}),
@@ -142,11 +149,12 @@ def stage_check():
             "buildings_per_second": round(float(res["usable"].sum()) / res["seconds"], 1),
             "median_shift_m": float(np.median(res["shift_m"][res["usable"]])),
             "labelled_scored": int(ok.sum()),
-            "metrics": M.report(lg[ok], y[ok], t, bias),
+            "metrics": M.report(lg[ok][:, :3], y[ok], t, bias),
+            "metrics_without_tta": M.report(lg[ok][:, 3:], y[ok], t, bias),
             "reference_same_buildings": M.report(ref[ok], y[ok], t, bias),
         }
         print(name, json.dumps({k: v for k, v in out[name].items() if "metrics" not in k}))
-        for k in ("metrics", "reference_same_buildings"):
+        for k in ("metrics", "metrics_without_tta", "reference_same_buildings"):
             m = out[name][k]
             print(
                 f"  {k:26s} macro-F1 {m['macro_f1']:.3f}"
@@ -157,5 +165,5 @@ def stage_check():
     return {k: v for k, v in out.items() if k in ("inventory", "scenes")}
 
 
-print(runner.run("respond_check", stage_check, version="1"))
+print(runner.run("respond_check", stage_check, version="2"))
 print(json.dumps(json.loads((runs / "respond_check.json").read_text()), indent=1)[:4000])

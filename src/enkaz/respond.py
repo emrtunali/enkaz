@@ -142,7 +142,11 @@ def model_inputs(pre: np.ndarray, post: np.ndarray, fp: np.ndarray):
     return one(pre), one(post)
 
 
-def torch_predictor(kind: str, checkpoint: Path, backbone: str = "resnet34") -> Predict:
+def torch_predictor(
+    kind: str, checkpoint: Path, backbone: str = "resnet34", tta: bool = False
+) -> Predict:
+    """Batched inference. ``tta`` averages the logits over the 8 rotations/flips of each crop;
+    the model was trained with exactly these augmentations, and no label is needed."""
     import torch
 
     from .learn import MODELS
@@ -157,8 +161,13 @@ def torch_predictor(kind: str, checkpoint: Path, backbone: str = "resnet34") -> 
         for s in range(0, len(x_post), 256):
             a = torch.from_numpy(x_pre[s : s + 256]).to(device)
             b = torch.from_numpy(x_post[s : s + 256]).to(device)
-            with torch.autocast(device, dtype=torch.float16, enabled=device == "cuda"):
-                out.append(model(a, b).float().cpu().numpy())
+            views = [(k, f) for k in range(4) for f in (False, True)] if tta else [(0, False)]
+            acc = 0
+            for k, f in views:
+                t = lambda x: torch.rot90(x, k, (2, 3)).flip(-1) if f else torch.rot90(x, k, (2, 3))  # noqa: E731,B023
+                with torch.autocast(device, dtype=torch.float16, enabled=device == "cuda"):
+                    acc = acc + model(t(a), t(b)).float()
+            out.append((acc / len(views)).cpu().numpy())
         return np.concatenate(out) if out else np.zeros((0, 3), np.float32)
 
     return predict
@@ -275,7 +284,7 @@ def run(
     real = images is cell_images
     post_b = _scene_bounds(post, epsg) if real else None
     pre_b = _scene_bounds(pre, epsg) if real and pre else None
-    logits = np.zeros((n, 3), np.float32)
+    logits = None  # width follows the predictor (it may return several sets of 3 logits)
     usable = np.zeros(n, bool)
     post_valid = np.zeros(n, np.float32)
     shift_m = np.zeros(n, np.float32)
@@ -302,13 +311,18 @@ def run(
             _decode(crops, "post", P.decode_jpeg),
             _decode(crops, "fp", P.decode_png),
         )
-        logits[idx] = predict(x_pre, x_post)
+        out = predict(x_pre, x_post)
+        if logits is None:
+            logits = np.zeros((n, out.shape[1]), np.float32)
+        logits[idx] = out
         post_valid[idx] = crops["post_valid"]
         usable[idx] = crops["post_valid"] >= 0.5
         done += len(idx)
         if (k + 1) % 50 == 0:
             log(f"  {k + 1}/{len(keys)} cells, {done:,} buildings ({time.time() - t0:.0f} s)")
-    probs, pred, sev = calibrate(logits, temperature, bias)
+    if logits is None:
+        logits = np.zeros((n, 3), np.float32)
+    probs, pred, sev = calibrate(logits[:, :3], temperature, bias)
     return {
         "logits": logits,
         "shift_m": shift_m,
