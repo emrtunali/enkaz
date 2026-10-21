@@ -131,8 +131,8 @@ def stage_check():
     print(json.dumps(out["scenes"]))
 
     out["reference_all"] = M.report(ref, y, t, bias)
-    for name, pre_paths in (("osm_no_alignment", None), ("osm_aligned_to_pre", pre)):
-        if name == "osm_aligned_to_pre" and not pre:
+    for name, pre_paths in (("no_alignment", None), ("aligned_to_pre", pre)):
+        if name == "aligned_to_pre" and not pre:
             continue
         res = R.run(
             inv,

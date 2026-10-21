@@ -390,6 +390,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     ap.add_argument("--kind", default="post_only", choices=["post_only", "siamese"])
     ap.add_argument("--calibration", type=Path, help="eval.json of the run (val_bias block)")
     ap.add_argument("--bbox", nargs=4, type=float, metavar=("W", "S", "E", "N"))
+    ap.add_argument("--no-tta", action="store_true", help="one view per crop (faster, worse)")
     ap.add_argument("--out", type=Path, default=Path("response"))
     a = ap.parse_args(argv)
     if a.kind == "siamese" and not a.pre:
@@ -400,7 +401,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         t, bias = cal["temperature"], cal["bias"]
     inv = load_inventory(a.inventory, a.bbox)
     print(f"{len(inv['rings']):,} buildings in the inventory selection")
-    res = run(inv, a.post, torch_predictor(a.kind, a.checkpoint), t, bias, a.pre)
+    res = run(inv, a.post, torch_predictor(a.kind, a.checkpoint, tta=not a.no_tta), t, bias, a.pre)
     write_outputs(inv, res, a.out)
     n = int(res["usable"].sum())
     print(f"scored {n:,} buildings; ranking written to {a.out}/ranking.csv")

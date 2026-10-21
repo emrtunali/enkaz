@@ -180,11 +180,47 @@ python -m enkaz.respond --inventory data/istanbul/buildings.npz \
 
 Buildings are grouped into 600 m cells on the local UTM grid. Each cell's post image is resampled to
 0.35 m and aligned to a pre-event reference by phase correlation. The same pre/post/footprint crops
-as in training are cut, and the logits are calibrated with the İslahiye settings. The output is
+as in training are cut, and the logits are calibrated with the İslahiye settings; by default each crop is scored in 8 rotations/flips and the
+logits averaged (`--no-tta` turns this off). The output is
 `ranking.csv` (every building, highest expected severity first), `top.geojson` (the first 5,000
 footprints for a field map) and `mahalle.csv`. The post-only model is the default: it needs no
 pre-event image to score buildings, and it held up better on Antakya. The pipeline is tested on
 synthetic rasters ([`tests/test_respond.py`](tests/test_respond.py)), not on Istanbul imagery.
+
+### Tested end to end on Antakya
+
+To see whether the pipeline holds up without any of the evaluation's conveniences,
+[`scripts/antakya_respond_check.py`](scripts/antakya_respond_check.py) runs it on Antakya exactly
+as it would run in Istanbul. Footprints come from an inventory made in advance by someone else,
+imagery is the released Maxar acquisition read straight from its COGs, and the checkpoint and
+İslahiye calibration are used unchanged. Every labelled building takes the score of the footprint
+that contains it (or the nearest within 4 m). The main configuration, fixed before any result was
+seen, is *aligned to a pre-event mosaic + test-time augmentation* (8 rotations/flips averaged).
+
+**Which inventory?** OpenStreetMap is no option here. On 1 January 2023 it had **413** buildings in
+Antakya (2 % of the labelled ones), and today's OSM has dropped most destroyed buildings (14 % of them
+still have a footprint). Microsoft's [Global ML Building Footprints](https://github.com/microsoft/GlobalMLBuildingFootprints)
+cover 87 % of the labelled buildings within 4 m. Destroyed buildings are covered as well as intact
+ones (92 % vs 86 %), so the footprints predate the earthquake.
+
+Same 11,783 buildings, scored by each method:
+
+| | Macro-F1 | F1 damaged | F1 destroyed | AUROC | Destroyed in top 10 % | ECE | Time (T4) |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Evaluation pipeline (BRIGHT polygons, co-registered crops) | 0.490 | 0.247 | 0.405 | 0.733 | **54 %** | 0.083 | – |
+| `respond`, single view, no alignment | 0.486 | 0.255 | 0.371 | 0.725 | 47 % | 0.092 | 8 min |
+| `respond` + TTA, no alignment | 0.508 | 0.283 | 0.398 | 0.743 | 52 % | 0.053 | 8 min |
+| **`respond` + TTA, aligned** *(main)* | **0.510** | 0.280 | **0.406** | **0.743** | 52 % | **0.053** | 23 min |
+
+In this run, a city-wide ranking from released imagery and an inventory nobody drew for this
+purpose comes out as good as the evaluation pipeline: slightly better on macro-F1, AUROC and
+calibration, and 2 points lower on destroyed buildings in the top 10 %. Test-time augmentation
+accounts for most of the gain. Alignment to the pre-event mosaic (median shift 1.75 m) adds
+almost nothing for the post-only model, so on the day it can be skipped to save two thirds of the
+time: 23,397 buildings in 8 minutes on one GPU. The test-time ranking is also more conservative
+about "destroyed" (151 intact buildings called destroyed instead of 586), which a field team will
+notice as fewer false alarms at the top of the list. Results:
+[`docs/antakya_respond_check.json`](docs/antakya_respond_check.json).
 
 To rebuild the inventory (about 2 minutes on a laptop):
 
@@ -264,10 +300,9 @@ Ideas, roughly in order of expected value:
   satellite's viewing geometry, to reduce the few-metre residual shift that hurt the Siamese model.
 * **Stronger models.** Larger backbones, ensembles, and segmentation-style models that use more
   context around each footprint.
-* **Istanbul, next steps.** Fill footprint gaps with open machine-made footprints (Microsoft /
-  Google), prepare a recent pre-event reference mosaic, and run `enkaz.respond` end to end on a
-  real scene (for example a 2023 Antakya scene with OSM footprints) to time it and check its
-  ranking against the labels.
+* **Istanbul, next steps.** Merge Microsoft's footprints into the Istanbul inventory where OSM is
+  thin (the Antakya run shows they work as a pre-event inventory), and repeat the Antakya check on
+  the other 2023 cities to see how stable the ranking is from one city to the next.
 
 ## Credits
 

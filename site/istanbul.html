@@ -58,6 +58,20 @@
         scenario numbers. In Antakya, the top 10 % of such a ranking held about half of all destroyed
         buildings.</li>
     </ol>
+    <h3>Tried on Antakya first</h3>
+    <p>The same pipeline was run on Antakya as if it were the day after: footprints made in advance
+      (Microsoft's machine-made building footprints, since OpenStreetMap had only 413 buildings there
+      before the earthquake), the released Maxar acquisition of 11 February 2023, and the model and
+      settings unchanged. On the 11,783 labelled buildings it could score, it did as well as the
+      careful evaluation pipeline:</p>
+    <table class="tbl">
+      <tr><th>Same buildings</th><th>Macro-F1</th><th>AUROC</th><th>Destroyed in top 10 %</th><th>ECE</th></tr>
+      <tr><td>Evaluation pipeline</td><td>0.490</td><td>0.733</td><td>54%</td><td>0.083</td></tr>
+      <tr class="ours"><td>Response pipeline</td><td>0.510</td><td>0.743</td><td>52%</td><td>0.053</td></tr>
+    </table>
+    <p class="note">23,397 buildings in 8 minutes on one GPU without alignment, 23 minutes with it. Most of the
+      gain comes from scoring each crop in eight rotations and averaging. Details in the
+      <a href="https://github.com/emrtunali/enkaz#tested-end-to-end-on-antakya">README</a>.</p>
     <pre class="cmd">python -m enkaz.respond --inventory data/istanbul/buildings.npz \
     --post scene.tif --pre reference.tif \
     --checkpoint post_only/best.pt --calibration post_only/eval.json \
@@ -75,8 +89,8 @@
       <li><strong>The scenario is a planning estimate</strong> from İBB's loss model, not an observation, and
         it is shown here for one earthquake scenario only.</li>
       <li><strong>Footprints are incomplete.</strong> Where OpenStreetMap has far fewer buildings than İBB
-        counts, the missing ones are invisible to the pipeline. Open machine-made footprints could
-        fill the gaps.</li>
+        counts, the missing ones are invisible to the pipeline. Machine-made footprints, which worked in
+        the Antakya test, can fill the gaps.</li>
       <li><strong>Names, not codes.</strong> İBB's tables are joined to OpenStreetMap boundaries by district
         and mahalle name; 937 of 959 rows match, the rest are left out rather than guessed.</li>
     </ul>

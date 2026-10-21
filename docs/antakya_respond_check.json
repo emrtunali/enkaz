@@ -1,0 +1,30 @@
+{
+ "what": "enkaz.respond end to end on Antakya (held-out test city), scripts/antakya_respond_check.py, Colab T4, 21 Oct 2026",
+ "inventory": {
+  "source": "Microsoft Global ML Building Footprints (quadkey 122112011)",
+  "footprints": 23397,
+  "labelled_buildings": 13555,
+  "labelled_inside_a_footprint": 0.585,
+  "labelled_within_4m_of_a_footprint": 0.869,
+  "within_4m_by_class": {"intact": 0.858, "damaged": 0.918, "destroyed": 0.919},
+  "osm_2023_01_01_buildings_in_antakya": 413,
+  "osm_2023_01_01_labelled_inside_a_footprint": 0.022,
+  "osm_2026_10_labelled_inside_a_footprint": {"all": 0.354, "destroyed": 0.141}
+ },
+ "scenes": {"post_acquisition": "10300100E18CB600", "post_date": "2023-02-11", "post_off_nadir": 34.0,
+            "post_items": 4, "pre_items": 8, "pre_dates": ["2021-09-27", "2022-12-22"]},
+ "labelled_scored": 11783,
+ "runs": {
+  "no_alignment": {"seconds": 494, "buildings_per_second": 47.4,
+   "tta": {"macro_f1": 0.508, "f1": [0.843, 0.283, 0.398], "auroc": 0.743, "destroyed_top10": 0.523, "ece": 0.053,
+           "confusion": [[7699, 1654, 166], [819, 564, 120], [236, 265, 260]]},
+   "single_view": {"macro_f1": 0.486, "f1": [0.830, 0.255, 0.371], "auroc": 0.725, "destroyed_top10": 0.473, "ece": 0.092}},
+  "aligned_to_pre (main configuration, fixed in advance)": {"seconds": 1407, "buildings_per_second": 16.6, "median_shift_m": 1.75,
+   "tta": {"macro_f1": 0.510, "f1": [0.844, 0.280, 0.406], "auroc": 0.743, "destroyed_top10": 0.520, "ece": 0.053,
+           "confusion": [[7732, 1636, 151], [824, 554, 125], [239, 258, 264]]},
+   "single_view": {"macro_f1": 0.487, "auroc": 0.726, "destroyed_top10": 0.47}}
+ },
+ "reference_same_buildings": {"macro_f1": 0.490, "f1": [0.817, 0.247, 0.405], "auroc": 0.733, "destroyed_top10": 0.536, "ece": 0.083,
+                              "confusion": [[7238, 1695, 586], [770, 473, 260], [192, 161, 408]]},
+ "reference_all_test_buildings": {"n": 13555, "macro_f1": 0.490, "auroc": 0.736, "destroyed_top10": 0.553, "ece": 0.075}
+}
