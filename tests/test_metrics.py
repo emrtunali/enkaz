@@ -54,3 +54,26 @@ def test_report_keys():
     r = M.report(logits, np.array([0, 1, 2, 0]))
     assert r["macro_f1"] == pytest.approx(1.0)
     assert set(r["f1"]) == set(M.CLASSES)
+
+
+def test_crop_position_is_row_order_within_tile():
+    pd = pytest.importorskip("pandas")
+    pytest.importorskip("torch")
+    from enkaz.learn import select
+
+    bdf = pd.DataFrame(
+        {
+            "tile": ["a", "a", "a", "b", "b"],
+            "idx": [0, 5, 9, 2, 3],  # instance ids with gaps
+            "label": [1, 2, 3, 1, 1],
+            "city": ["x"] * 5,
+            "post_valid": [1.0, 0.1, 1.0, 1.0, 1.0],
+        }
+    )
+    rows = select(bdf, ["x"])
+    assert rows["crop"].tolist() == [
+        0,
+        2,
+        0,
+        1,
+    ]  # the 0.1-valid building is dropped, positions kept

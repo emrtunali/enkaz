@@ -70,7 +70,13 @@ class CropStore:
 
 
 def select(bdf, cities, min_post_valid: float = 0.5):
-    """Rows of the building table used for a split (labelled, enough valid post pixels)."""
+    """Rows of the building table used for a split (labelled, enough valid post pixels).
+
+    ``crop`` is the building's position inside its tile's crop file. It is *not* ``idx``: the
+    building table keeps the tiles' row order, but instance ids can skip numbers.
+    """
+    if "crop" not in bdf:
+        bdf = bdf.assign(crop=bdf.groupby("tile", sort=False).cumcount())
     m = (
         bdf["city"].isin(cities)
         & bdf["label"].between(1, 3)
@@ -95,7 +101,7 @@ def _shift(img: np.ndarray, dy: int, dx: int) -> np.ndarray:
 class BuildingSet(Dataset):
     def __init__(self, rows, store: CropStore, train: bool):
         self.tile = rows["tile"].tolist()
-        self.idx = rows["idx"].astype(int).tolist()
+        self.idx = rows["crop"].astype(int).tolist()
         self.y = (rows["label"].astype(int) - 1).to_numpy()
         self.store, self.train = store, train
 
@@ -329,7 +335,7 @@ def evaluate(
 def change_baseline(rows, store: CropStore) -> np.ndarray:
     """Damage score without learning: 1 - correlation of pre/post gradients inside the footprint."""
     scores = np.empty(len(rows))
-    for i, (t, k) in enumerate(zip(rows["tile"], rows["idx"])):
+    for i, (t, k) in enumerate(zip(rows["tile"], rows["crop"])):
         pre, post, fp = store.get(t, int(k))
         a = P.gradient_magnitude(P.to_gray(pre))[fp]
         b = P.gradient_magnitude(P.to_gray(post))[fp]
