@@ -37,13 +37,29 @@ STD = np.array([0.229, 0.224, 0.225], np.float32)
 
 
 class CropStore:
-    """Keeps every tile's packed crops in memory (compressed bytes, a few hundred MB)."""
+    """Keeps every tile's packed crops in memory (compressed bytes, ~2 GB for all tiles).
 
-    def __init__(self, crops_dir: Path, tiles):
+    Files are read in parallel: Google Drive's FUSE mount has a high per-file latency, and reading
+    the 1,100 tile files one after another runs at ~2 MB/s.
+    """
+
+    def __init__(self, crops_dir: Path, tiles, workers: int = 32, log=print):
+        import concurrent.futures as cf
+        import io
+
+        names = sorted(set(tiles))
+
+        def load(t: str):
+            with np.load(io.BytesIO((Path(crops_dir) / f"{t}.npz").read_bytes())) as z:
+                return t, {k: z[k] for k in z.files}
+
         self.tiles = {}
-        for t in sorted(set(tiles)):
-            with np.load(Path(crops_dir) / f"{t}.npz") as z:
-                self.tiles[t] = {k: z[k] for k in z.files}
+        t0 = time.time()
+        with cf.ThreadPoolExecutor(workers) as ex:
+            for i, (t, arrays) in enumerate(ex.map(load, names), 1):
+                self.tiles[t] = arrays
+                if i % 200 == 0 or i == len(names):
+                    log(f"  loaded {i}/{len(names)} tiles in {time.time() - t0:.0f} s")
 
     def get(self, tile: str, idx: int):
         z = self.tiles[tile]
