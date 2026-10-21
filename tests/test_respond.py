@@ -84,6 +84,37 @@ def test_read_ms_footprints(tmp_path):
     assert inv["area_m2"][0] == pytest.approx(8.4 * 11.1, rel=0.02)
 
 
+def _packed(rings, kind_name):
+    rings = [np.asarray(r, np.float32) for r in rings]
+    return {
+        "osm_id": np.arange(1, len(rings) + 1),
+        "lon": np.array([r[:-1, 0].mean() for r in rings]),
+        "lat": np.array([r[:-1, 1].mean() for r in rings]),
+        "area_m2": np.ones(len(rings), np.float32),
+        "levels": np.full(len(rings), np.nan, np.float32),
+        "kind": np.zeros(len(rings), np.int16),
+        "kind_names": np.array([kind_name]),
+        "ring": np.concatenate(rings),
+        "ring_off": np.concatenate([[0], np.cumsum([len(r) for r in rings])]),
+    }
+
+
+def test_merge_keeps_osm_and_adds_only_non_overlapping_machine_footprints():
+    pytest.importorskip("shapely")
+
+    def sq(x, y, s=0.0001):
+        return [[x, y], [x + s, y], [x + s, y + s], [x, y + s], [x, y]]
+
+    osm = _packed([sq(29.0, 41.0), sq(29.001, 41.0)], "house")
+    ms = _packed([sq(29.00005, 41.00005), sq(29.002, 41.0), sq(29.003, 41.0)], "ms_ml")
+    m = I.merge_footprints(osm, ms)
+    assert m["source"].tolist() == [0, 0, 1, 1]  # the overlapping machine footprint is dropped
+    assert m["kind_names"].tolist() == ["house", "ms_ml"] and m["kind"].tolist() == [0, 0, 1, 1]
+    assert m["ring_off"].tolist() == [0, 5, 10, 15, 20]
+    assert len(m["ring"]) == 20 and m["ring"][15:20].tolist() == ms["ring"][10:15].tolist()
+    assert len(I.polygons(m)) == 4
+
+
 def test_ring_area():
     # 0.001° x 0.001° at 41° N is ~111.3 m x ~84.0 m
     lon = np.array([29.0, 29.001, 29.001, 29.0])

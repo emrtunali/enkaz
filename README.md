@@ -159,11 +159,16 @@ be measured. What can be prepared is everything around it.
 
 | | |
 |---|---|
-| Building footprints | **744,105** in the 39 districts, from OpenStreetMap (Geofabrik extract, outline + area + storeys where tagged) |
+| Building footprints | **1,200,128** in the 39 districts: 744,105 from OpenStreetMap (outline + area + storeys where tagged), plus 456,023 [Microsoft ML footprints](https://github.com/microsoft/GlobalMLBuildingFootprints) where OSM has no building |
 | Boundaries | 39 districts, 964 mahalle (OpenStreetMap) |
 | İBB scenario (Mw 7.5, night) | joined for 937 of 959 mahalle: **46,598** very heavily or heavily and 142,523 moderately damaged buildings |
 | İBB building stock (2017) | age and height classes, joined for 559 of 571 mahalle |
-| Footprint coverage | median mahalle has **67 %** as many OSM buildings as İBB counts; the northern districts are far lower |
+| Footprint coverage | against İBB's 2017 count, the median mahalle goes from 67 % (OSM alone) to **97 %**; mahalle below half: from 37 % to 8 % |
+
+OSM outlines win wherever both sources have a building; a machine footprint is added only if it
+touches no OSM building (`istanbul.merge_footprints`). Footprints are not buildings one to one: in
+dense old districts (Beyoğlu, Bağcılar) both sources merge attached buildings into blocks, and in
+fast-growing ones (Arnavutköy, Çatalca) the inventory exceeds İBB's 2017 count.
 
 İBB's tables carry no geometry, so they are joined to OSM boundaries by district and normalised
 mahalle name (`MAHALLESİ` and diacritics removed, *Eyüp* → *Eyüpsultan*). Ambiguous or renamed
@@ -226,11 +231,12 @@ To rebuild the inventory (about 2 minutes on a laptop):
 
 ```bash
 pip install -e ".[osm]"
-python scripts/istanbul_inventory.py turkey-latest.osm.pbf deprem-senaryosu.csv bina-sayilari.csv
+python scripts/istanbul_inventory.py turkey-latest.osm.pbf deprem-senaryosu.csv bina-sayilari.csv ms/*.csv.gz
 ```
 
 The CSVs are İBB's open datasets *Deprem Senaryosu Analiz Sonuçları* and *Mahalle Bazlı Bina
-Sayıları*, from [data.ibb.gov.tr](https://data.ibb.gov.tr).
+Sayıları*, from [data.ibb.gov.tr](https://data.ibb.gov.tr); `ms/` holds Microsoft's files for the
+quadkeys `istanbul.quadkeys(istanbul.BBOX)` returns (listed in `istanbul.MS_LINKS`).
 
 ## Responsible use
 
@@ -300,15 +306,16 @@ Ideas, roughly in order of expected value:
   satellite's viewing geometry, to reduce the few-metre residual shift that hurt the Siamese model.
 * **Stronger models.** Larger backbones, ensembles, and segmentation-style models that use more
   context around each footprint.
-* **Istanbul, next steps.** Merge Microsoft's footprints into the Istanbul inventory where OSM is
-  thin (the Antakya run shows they work as a pre-event inventory), and repeat the Antakya check on
-  the other 2023 cities to see how stable the ranking is from one city to the next.
+* **Istanbul, next steps.** Split block-sized footprints in dense districts (cadastre parcels or
+  address points), and repeat the Antakya check on the other 2023 cities to see how stable the
+  ranking is from one city to the next.
 
 ## Credits
 
 Imagery © Maxar Technologies, Maxar Open Data Program (CC BY-NC 4.0). Labels: BRIGHT (Chen et al.,
 2025). Reference gradings © European Union, Copernicus Emergency Management Service (EMSR648).
-Istanbul buildings and boundaries © OpenStreetMap contributors (ODbL); scenario estimates and
+Istanbul buildings and boundaries © OpenStreetMap contributors (ODbL); machine-made footprints:
+Microsoft Global ML Building Footprints (ODbL); scenario estimates and
 building stock © İstanbul Büyükşehir Belediyesi (İBB Open Data Licence).
 
 In memory of the more than 50,000 people who lost their lives in Türkiye on 6 February 2023.

@@ -32,8 +32,12 @@
     <h2>964 neighbourhoods</h2>
     <p>Each shape is a mahalle. <em>Scenario</em> shows İBB's estimate of very heavily and heavily
       damaged buildings for a Mw 7.5 night-time earthquake. <em>Old stock</em> is the share of
-      buildings built before 1980 (İBB, 2017). <em>Footprints</em> compares the buildings mapped in
-      OpenStreetMap with İBB's count: the image model can only score buildings that have a footprint.</p>
+      buildings built before 1980 (İBB, 2017). <em>Footprints</em> compares the footprints in the
+      inventory with İBB's count: the image model can only score buildings that have a footprint.</p>
+    <p>The inventory starts from OpenStreetMap, whose outlines are drawn by people and carry storeys
+      and building types. Where OSM has no building, Microsoft's machine-made footprints fill the gap:
+      456,023 of them, which brings the median mahalle from 67 % to 97 % of İBB's count. In the
+      Antakya test the same footprints worked as an inventory made before the earthquake.</p>
     <div class="seg" id="mapSeg">
       <button data-v="scenario" class="on">Scenario</button><button data-v="old">Old stock</button><button data-v="cov">Footprints</button>
     </div>
@@ -88,9 +92,10 @@
         needed to check thresholds on the day.</li>
       <li><strong>The scenario is a planning estimate</strong> from İBB's loss model, not an observation, and
         it is shown here for one earthquake scenario only.</li>
-      <li><strong>Footprints are incomplete.</strong> Where OpenStreetMap has far fewer buildings than İBB
-        counts, the missing ones are invisible to the pipeline. Machine-made footprints, which worked in
-        the Antakya test, can fill the gaps.</li>
+      <li><strong>Footprints are not buildings one to one.</strong> In dense old districts (Beyoğlu,
+        Bağcılar) both sources merge attached buildings into one block, so a row of houses is scored as one.
+        In fast-growing districts (Arnavutköy, Çatalca) the inventory counts more than İBB's 2017 figure:
+        new construction since then, and some sheds and small structures.</li>
       <li><strong>Names, not codes.</strong> İBB's tables are joined to OpenStreetMap boundaries by district
         and mahalle name; 937 of 959 rows match, the rest are left out rather than guessed.</li>
     </ul>
@@ -98,7 +103,8 @@
 </section>
 
 <footer class="foot">
-  <p>Buildings and boundaries © OpenStreetMap contributors (ODbL), via Geofabrik. Scenario estimates and
+  <p>Buildings and boundaries © OpenStreetMap contributors (ODbL), via Geofabrik. Machine-made footprints:
+    Microsoft Global ML Building Footprints (ODbL). Scenario estimates and
     building stock: İstanbul Büyükşehir Belediyesi Açık Veri Portalı (İBB Open Data Licence). Basemap ©
     OpenStreetMap contributors, OpenFreeMap.</p>
 </footer>

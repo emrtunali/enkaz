@@ -180,6 +180,50 @@ def read_ms_footprints(paths: Sequence[Path], bbox=BBOX) -> dict[str, np.ndarray
     }
 
 
+def polygons(inv: dict) -> list:
+    """Shapely polygons of a packed inventory."""
+    import shapely
+
+    off = inv["ring_off"]
+    rings = shapely.linearrings(
+        inv["ring"], indices=np.repeat(np.arange(len(off) - 1), np.diff(off))
+    )
+    return shapely.polygons(rings)
+
+
+def merge_footprints(base: dict, extra: dict) -> dict:
+    """``base`` plus every ``extra`` footprint that touches no ``base`` footprint.
+
+    OSM outlines are drawn by people and carry tags (storeys, building type), so they win wherever
+    both sources have a building; machine-made footprints only fill the gaps. The result has a
+    ``source`` column: 0 = base, 1 = extra.
+    """
+    import shapely
+
+    keep = np.ones(len(extra["lon"]), bool)
+    if len(base["lon"]) and len(keep):
+        tree = shapely.STRtree(polygons(base))
+        hit, _ = tree.query(polygons(extra), predicate="intersects")
+        keep[hit] = False
+    idx = np.flatnonzero(keep)
+    off = extra["ring_off"]
+    rings = [extra["ring"][off[i] : off[i + 1]] for i in idx]
+    n_kinds = len(base["kind_names"])
+    out = {
+        k: np.concatenate([base[k], extra[k][idx]])
+        for k in ("osm_id", "lon", "lat", "area_m2", "levels")
+    }
+    out["kind"] = np.concatenate([base["kind"], extra["kind"][idx] + n_kinds]).astype(np.int16)
+    out["kind_names"] = np.concatenate([base["kind_names"], extra["kind_names"]])
+    out["source"] = np.concatenate(
+        [np.zeros(len(base["lon"]), np.int8), np.ones(len(idx), np.int8)]
+    )
+    out["ring"] = np.concatenate([base["ring"], *rings]) if rings else base["ring"]
+    lens = np.diff(off)[idx]
+    out["ring_off"] = np.concatenate([base["ring_off"], base["ring_off"][-1] + np.cumsum(lens)])
+    return out
+
+
 def read_admin(pbf: Path, bbox=BBOX, levels=("6", "8")) -> list[dict]:
     """Administrative areas (districts = 6, mahalle = 8) whose label point is inside ``bbox``."""
     import osmium

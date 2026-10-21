@@ -21,7 +21,7 @@ const LAYERS = {
   },
   cov: { // low coverage is the problem, so it gets the dark end
     prop: "coverage", stops: [0, 0.2, 0.4, 0.6, 0.8, 1], ramp: [...RAMP].reverse(),
-    legend: (s) => `OpenStreetMap buildings ÷ İBB's count: ${pctList(s)}+`,
+    legend: (s) => `footprints (OSM + Microsoft) ÷ İBB's count: ${pctList(s)}+`,
   },
 };
 
@@ -30,7 +30,7 @@ function enrich(fc) {
     const p = f.properties;
     p.heavy_all = p.very_heavy == null ? -1 : p.very_heavy + p.heavy;
     p.old_share = p.ibb_buildings_2017 ? p.pre1980 / p.ibb_buildings_2017 : -1;
-    p.coverage = p.ibb_buildings_2017 ? p.osm_buildings / p.ibb_buildings_2017 : -1;
+    p.coverage = p.ibb_buildings_2017 ? p.buildings / p.ibb_buildings_2017 : -1;
   }
   return fc;
 }
@@ -51,10 +51,10 @@ function stats(fc) {
   const P = fc.features.map((f) => f.properties);
   const sum = (k) => P.reduce((a, p) => a + (p[k] || 0), 0);
   const both = P.filter((p) => p.ibb_buildings_2017);
-  const cov = both.map((p) => p.osm_buildings / p.ibb_buildings_2017).sort((a, b) => a - b);
+  const cov = both.map((p) => p.buildings / p.ibb_buildings_2017).sort((a, b) => a - b);
   const median = cov[Math.floor(cov.length / 2)];
   $("stats").innerHTML = [
-    [fmt(sum("osm_buildings")), "buildings with a footprint in OpenStreetMap, 39 districts"],
+    [fmt(sum("buildings")), `building footprints in 39 districts: ${fmt(sum("osm_buildings"))} from OpenStreetMap, ${fmt(sum("ms_added"))} machine-made`],
     [fmt(sum("very_heavy") + sum("heavy")), "very heavily or heavily damaged in İBB's Mw 7.5 scenario"],
     [fmt(sum("moderate")), "moderately damaged in the same scenario"],
     [`${Math.round(median * 100)}%`, "median footprint coverage per mahalle vs İBB's 2017 count"],
@@ -64,7 +64,7 @@ function stats(fc) {
 function popup(p) {
   const row = (k, v) => (v == null ? "" : `${k}: <b>${typeof v === "number" ? fmt(v) : v}</b><br>`);
   return `<b>${p.name}</b>, ${p.district}<br>` +
-    row("Mapped buildings (OSM)", p.osm_buildings) +
+    row("Footprints", `${fmt(p.buildings)} (${fmt(p.osm_buildings)} OSM + ${fmt(p.ms_added)} Microsoft)`) +
     row("Buildings (İBB 2017)", p.ibb_buildings_2017 || null) +
     row("Built before 1980", p.pre1980) +
     (p.very_heavy == null ? "No scenario row matched<br>" :
