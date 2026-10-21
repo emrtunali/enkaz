@@ -45,6 +45,7 @@ def export_city(
     out_dir: Path,
     per_cell: int = 4,
     seed: int = 0,
+    bias=None,
 ) -> dict:
     out_dir = Path(out_dir)
     (out_dir / "gallery").mkdir(parents=True, exist_ok=True)
@@ -57,7 +58,7 @@ def export_city(
     ]
     (out_dir / "buildings.json").write_text(json.dumps(data, separators=(",", ":")))
 
-    pred = probs.argmax(1)
+    pred = (logits + (0 if bias is None else np.asarray(bias))).argmax(1)
     rng = random.Random(seed)
     items = []
     for t in range(3):

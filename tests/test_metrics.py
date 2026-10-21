@@ -77,3 +77,14 @@ def test_crop_position_is_row_order_within_tile():
         0,
         1,
     ]  # the 0.1-valid building is dropped, positions kept
+
+
+def test_bias_recovers_rare_class():
+    rng = np.random.default_rng(1)
+    y = np.array([0] * 900 + [1] * 100)
+    logits = np.zeros((1000, 3))
+    logits[:, 0] = 1.0  # the model always leans to the majority class ...
+    logits[y == 1, 1] += rng.uniform(0.3, 0.9, 100)  # ... but ranks the rare class higher
+    assert M.report(logits, y)["f1"]["damaged"] == 0.0
+    bias = M.fit_bias(logits, y)
+    assert bias[1] > 0 and M.report(logits, y, bias=bias)["f1"]["damaged"] > 0.9

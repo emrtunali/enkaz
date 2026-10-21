@@ -85,9 +85,28 @@ def binary_auroc(score: np.ndarray, positive: np.ndarray) -> float:
     return float((ranks[positive].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
 
 
-def report(logits: np.ndarray, y: np.ndarray, temperature: float = 1.0) -> dict:
+def fit_bias(logits: np.ndarray, y: np.ndarray, grid: np.ndarray | None = None) -> np.ndarray:
+    """Per-class logit offsets (intact fixed at 0) that maximise macro-F1 on validation data.
+
+    Arg-max of a model trained on 95 % intact buildings under-predicts the rare classes; shifting
+    the decision boundary on the validation city is the standard, test-blind correction.
+    """
+    grid = np.linspace(-1.0, 4.0, 26) if grid is None else grid
+    best, out = -1.0, np.zeros(3)
+    for b1 in grid:
+        for b2 in grid:
+            bias = np.array([0.0, b1, b2])
+            f = per_class_f1(confusion(y, (logits + bias).argmax(1))).mean()
+            if f > best:
+                best, out = f, bias
+    return out
+
+
+def report(
+    logits: np.ndarray, y: np.ndarray, temperature: float = 1.0, bias: np.ndarray | None = None
+) -> dict:
     probs = softmax(logits, temperature)
-    pred = probs.argmax(1)
+    pred = (logits + (0 if bias is None else bias)).argmax(1)
     cm = confusion(y, pred)
     f1 = per_class_f1(cm)
     score = damage_score(probs)
@@ -99,6 +118,7 @@ def report(logits: np.ndarray, y: np.ndarray, temperature: float = 1.0) -> dict:
         "confusion": cm.tolist(),
         "ece": ece(probs, y),
         "temperature": temperature,
+        "bias": None if bias is None else [float(b) for b in bias],
         "auroc_damaged_or_destroyed": binary_auroc(score, y > 0),
         "destroyed_recall_top10pct": recall_at_fraction(score, y, 2, 0.10),
     }

@@ -319,12 +319,15 @@ def evaluate(
     lv, yv = predict(model, dl(val_rows), device)
     lt, yt = predict(model, dl(test_rows), device)
     t = M.fit_temperature(lv, yv)
+    bias = M.fit_bias(lv, yv)
     out = {
         "val": M.report(lv, yv, t),
         "test": M.report(lt, yt, t),
+        "val_bias": M.report(lv, yv, t, bias),
+        "test_bias": M.report(lt, yt, t, bias),
         "test_uncalibrated_ece": M.ece(M.softmax(lt), yt),
     }
-    np.savez(Path(run_dir) / "test_logits.npz", logits=lt, y=yt)
+    np.savez(Path(run_dir) / "test_logits.npz", logits=lt, y=yt, val_logits=lv, val_y=yv)
     (Path(run_dir) / "eval.json").write_text(json.dumps(out, indent=1))
     return out
 
