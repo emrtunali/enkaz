@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enkaz — reading damage from space</title>
+<meta name="description" content="Building-level damage assessment from satellite imagery for the 6 February 2023 Kahramanmaraş earthquakes, tested on Antakya, a city the model never saw.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+<header class="masthead">
+  <span class="brand">Enkaz</span>
+  <nav><a href="#how">How it works</a><a href="#map">Antakya</a><a href="#results">Results</a><a href="#limits">Limits</a><a href="https://github.com/emrtunali/enkaz">Code</a></nav>
+</header>
+
+<section class="hero">
+  <p class="kicker">6 February 2023 · Kahramanmaraş earthquakes</p>
+  <h1>Reading damage from space, one building at a time</h1>
+  <p class="lede">A model compares each building's satellite image from before and after the earthquakes
+    and estimates how badly it was damaged. It was trained on five cities and is tested here on
+    <strong>Antakya</strong>, a city it never saw during training or tuning.</p>
+  <div class="stats" id="stats"></div>
+</section>
+
+<section id="how" class="band">
+  <div class="col">
+    <h2>Before and after</h2>
+    <p>Each building is cut out of a pre-event image (BRIGHT, Maxar) and the earliest usable post-event
+      Maxar image, shifted onto the same grid and co-registered. Drag the line to compare. The outline is
+      the building footprint the model is asked about.</p>
+    <div class="compare" id="compare">
+      <img id="cmpPost" alt="after the earthquake">
+      <div class="cmp-pre" id="cmpPreWrap"><img id="cmpPre" alt="before the earthquake"></div>
+      <img id="cmpFp" class="fp" alt="">
+      <input type="range" min="0" max="100" value="50" id="cmpSlider" aria-label="Before/after slider">
+      <span class="tag left">before</span><span class="tag right">after</span>
+    </div>
+    <p class="caption" id="cmpCaption"></p>
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+</section>
+
+<section id="map" class="band alt">
+  <div class="col wide">
+    <h2>Antakya, building by building</h2>
+    <p>Every dot is a building in the held-out test city, coloured by the class the model predicts.
+      Switch to the expert labels to see where it agrees and where it does not.</p>
+    <div class="seg" id="mapSeg">
+      <button data-v="pred" class="on">Model</button><button data-v="true">Expert labels</button><button data-v="err">Disagreements</button>
+    </div>
+    <div id="mapview"></div>
+    <div class="legend">
+      <span><i style="background:var(--intact)"></i>intact</span>
+      <span><i style="background:var(--damaged)"></i>damaged</span>
+      <span><i style="background:var(--destroyed)"></i>destroyed</span>
+    </div>
+  </div>
+</section>
+
+<section id="results" class="band">
+  <div class="col">
+    <h2>How well does it work?</h2>
+    <p id="resultsLead"></p>
+    <table class="tbl" id="resultsTable"></table>
+    <p class="note">Macro-F1 averages the F1 score of the three classes, so the rare damaged and destroyed
+      buildings count as much as the many intact ones. "Top 10 %": share of destroyed buildings found by
+      inspecting the 10 % of buildings the method ranks highest. ECE: calibration error of the
+      probabilities after temperature scaling (lower is better).</p>
+    <h3>Where it goes wrong</h3>
+    <div id="confusion"></div>
+  </div>
+</section>
+
+<section id="limits" class="band alt">
+  <div class="col">
+    <h2>What this cannot do</h2>
+    <ul class="limits">
+      <li><strong>Satellites see roofs.</strong> A building whose lower floors collapsed can look intact from above.
+        An "intact" prediction is never a safety assessment.</li>
+      <li><strong>"Damaged" is the hardest class.</strong> Its visual signature is subtle and its boundary with the other
+        classes is fuzzy even for experts.</li>
+      <li><strong>Labels are expert gradings from imagery,</strong> not ground inspections, and the earliest
+        gradings under-report damage in places.</li>
+      <li><strong>One event, one region.</strong> Building stock, imagery and labelling differ elsewhere.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Imagery © Maxar Technologies, Maxar Open Data Program (CC BY-NC 4.0). Labels: BRIGHT (Chen et al., 2025),
+    derived from Copernicus EMS gradings (© European Union, EMSR648). Basemap © OpenStreetMap contributors, OpenFreeMap.</p>
+  <p class="memorial">In memory of the more than 50,000 people who lost their lives in Türkiye on 6 February 2023.</p>
+</footer>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

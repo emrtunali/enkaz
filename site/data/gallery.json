@@ -1,0 +1,434 @@
+[
+ {
+  "id": "turkey-earthquake_00001050_0018",
+  "true": "intact",
+  "pred": "intact",
+  "probs": [
+   0.948,
+   0.026,
+   0.027
+  ],
+  "lon": 36.14555,
+  "lat": 36.205808
+ },
+ {
+  "id": "turkey-earthquake_00001104_0002",
+  "true": "intact",
+  "pred": "intact",
+  "probs": [
+   0.935,
+   0.036,
+   0.029
+  ],
+  "lon": 36.144776,
+  "lat": 36.187648
+ },
+ {
+  "id": "turkey-earthquake_00001056_0169",
+  "true": "intact",
+  "pred": "intact",
+  "probs": [
+   0.909,
+   0.06,
+   0.03
+  ],
+  "lon": 36.168296,
+  "lat": 36.205173
+ },
+ {
+  "id": "turkey-earthquake_00000990_0108",
+  "true": "intact",
+  "pred": "intact",
+  "probs": [
+   0.955,
+   0.017,
+   0.027
+  ],
+  "lon": 36.144139,
+  "lat": 36.219746
+ },
+ {
+  "id": "turkey-earthquake_00001024_0152",
+  "true": "intact",
+  "pred": "damaged",
+  "probs": [
+   0.119,
+   0.092,
+   0.789
+  ],
+  "lon": 36.143698,
+  "lat": 36.209915
+ },
+ {
+  "id": "turkey-earthquake_00001108_0101",
+  "true": "intact",
+  "pred": "damaged",
+  "probs": [
+   0.552,
+   0.32,
+   0.127
+  ],
+  "lon": 36.156275,
+  "lat": 36.189846
+ },
+ {
+  "id": "turkey-earthquake_00001058_0008",
+  "true": "intact",
+  "pred": "damaged",
+  "probs": [
+   0.305,
+   0.056,
+   0.639
+  ],
+  "lon": 36.175305,
+  "lat": 36.20692
+ },
+ {
+  "id": "turkey-earthquake_00001056_0021",
+  "true": "intact",
+  "pred": "damaged",
+  "probs": [
+   0.017,
+   0.98,
+   0.003
+  ],
+  "lon": 36.166846,
+  "lat": 36.207139
+ },
+ {
+  "id": "turkey-earthquake_00001080_0188",
+  "true": "intact",
+  "pred": "destroyed",
+  "probs": [
+   0.102,
+   0.021,
+   0.877
+  ],
+  "lon": 36.14934,
+  "lat": 36.198122
+ },
+ {
+  "id": "turkey-earthquake_00001064_0121",
+  "true": "intact",
+  "pred": "destroyed",
+  "probs": [
+   0.007,
+   0.017,
+   0.976
+  ],
+  "lon": 36.155534,
+  "lat": 36.201827
+ },
+ {
+  "id": "turkey-earthquake_00001092_0059",
+  "true": "intact",
+  "pred": "destroyed",
+  "probs": [
+   0.011,
+   0.001,
+   0.988
+  ],
+  "lon": 36.158686,
+  "lat": 36.193761
+ },
+ {
+  "id": "turkey-earthquake_00001074_0008",
+  "true": "intact",
+  "pred": "destroyed",
+  "probs": [
+   0.191,
+   0.034,
+   0.776
+  ],
+  "lon": 36.160054,
+  "lat": 36.200076
+ },
+ {
+  "id": "turkey-earthquake_00001039_0176",
+  "true": "damaged",
+  "pred": "intact",
+  "probs": [
+   0.963,
+   0.018,
+   0.019
+  ],
+  "lon": 36.148559,
+  "lat": 36.209323
+ },
+ {
+  "id": "turkey-earthquake_00001080_0200",
+  "true": "damaged",
+  "pred": "intact",
+  "probs": [
+   0.911,
+   0.027,
+   0.063
+  ],
+  "lon": 36.147984,
+  "lat": 36.198179
+ },
+ {
+  "id": "turkey-earthquake_00001026_0256",
+  "true": "damaged",
+  "pred": "intact",
+  "probs": [
+   0.945,
+   0.033,
+   0.022
+  ],
+  "lon": 36.149351,
+  "lat": 36.209804
+ },
+ {
+  "id": "turkey-earthquake_00001045_0025",
+  "true": "damaged",
+  "pred": "intact",
+  "probs": [
+   0.943,
+   0.041,
+   0.016
+  ],
+  "lon": 36.171754,
+  "lat": 36.207576
+ },
+ {
+  "id": "turkey-earthquake_00001015_0054",
+  "true": "damaged",
+  "pred": "damaged",
+  "probs": [
+   0.122,
+   0.169,
+   0.709
+  ],
+  "lon": 36.155316,
+  "lat": 36.214954
+ },
+ {
+  "id": "turkey-earthquake_00001094_0046",
+  "true": "damaged",
+  "pred": "damaged",
+  "probs": [
+   0.267,
+   0.691,
+   0.042
+  ],
+  "lon": 36.136402,
+  "lat": 36.192082
+ },
+ {
+  "id": "turkey-earthquake_00001003_0083",
+  "true": "damaged",
+  "pred": "damaged",
+  "probs": [
+   0.861,
+   0.095,
+   0.044
+  ],
+  "lon": 36.161122,
+  "lat": 36.216249
+ },
+ {
+  "id": "turkey-earthquake_00001071_0002",
+  "true": "damaged",
+  "pred": "damaged",
+  "probs": [
+   0.691,
+   0.159,
+   0.15
+  ],
+  "lon": 36.14825,
+  "lat": 36.200328
+ },
+ {
+  "id": "turkey-earthquake_00001053_0011",
+  "true": "damaged",
+  "pred": "destroyed",
+  "probs": [
+   0.36,
+   0.034,
+   0.606
+  ],
+  "lon": 36.155132,
+  "lat": 36.206915
+ },
+ {
+  "id": "turkey-earthquake_00001040_0091",
+  "true": "damaged",
+  "pred": "destroyed",
+  "probs": [
+   0.142,
+   0.026,
+   0.832
+  ],
+  "lon": 36.154364,
+  "lat": 36.209574
+ },
+ {
+  "id": "turkey-earthquake_00001063_0098",
+  "true": "damaged",
+  "pred": "destroyed",
+  "probs": [
+   0.234,
+   0.02,
+   0.746
+  ],
+  "lon": 36.152469,
+  "lat": 36.203717
+ },
+ {
+  "id": "turkey-earthquake_00001027_0157",
+  "true": "damaged",
+  "pred": "destroyed",
+  "probs": [
+   0.032,
+   0.032,
+   0.936
+  ],
+  "lon": 36.152683,
+  "lat": 36.210987
+ },
+ {
+  "id": "turkey-earthquake_00001014_0088",
+  "true": "destroyed",
+  "pred": "intact",
+  "probs": [
+   0.936,
+   0.03,
+   0.034
+  ],
+  "lon": 36.152136,
+  "lat": 36.214033
+ },
+ {
+  "id": "turkey-earthquake_00001066_0093",
+  "true": "destroyed",
+  "pred": "intact",
+  "probs": [
+   0.958,
+   0.033,
+   0.009
+  ],
+  "lon": 36.161692,
+  "lat": 36.201542
+ },
+ {
+  "id": "turkey-earthquake_00001075_0339",
+  "true": "destroyed",
+  "pred": "intact",
+  "probs": [
+   0.946,
+   0.014,
+   0.04
+  ],
+  "lon": 36.163439,
+  "lat": 36.199564
+ },
+ {
+  "id": "turkey-earthquake_00001016_0088",
+  "true": "destroyed",
+  "pred": "intact",
+  "probs": [
+   0.866,
+   0.074,
+   0.06
+  ],
+  "lon": 36.158574,
+  "lat": 36.213906
+ },
+ {
+  "id": "turkey-earthquake_00001053_0027",
+  "true": "destroyed",
+  "pred": "damaged",
+  "probs": [
+   0.005,
+   0.265,
+   0.73
+  ],
+  "lon": 36.156035,
+  "lat": 36.20617
+ },
+ {
+  "id": "turkey-earthquake_00001063_0071",
+  "true": "destroyed",
+  "pred": "damaged",
+  "probs": [
+   0.58,
+   0.338,
+   0.082
+  ],
+  "lon": 36.153302,
+  "lat": 36.203813
+ },
+ {
+  "id": "turkey-earthquake_00001042_0112",
+  "true": "destroyed",
+  "pred": "damaged",
+  "probs": [
+   0.162,
+   0.068,
+   0.77
+  ],
+  "lon": 36.160916,
+  "lat": 36.207867
+ },
+ {
+  "id": "turkey-earthquake_00001082_0018",
+  "true": "destroyed",
+  "pred": "damaged",
+  "probs": [
+   0.061,
+   0.383,
+   0.556
+  ],
+  "lon": 36.157781,
+  "lat": 36.198075
+ },
+ {
+  "id": "turkey-earthquake_00001075_0130",
+  "true": "destroyed",
+  "pred": "destroyed",
+  "probs": [
+   0.015,
+   0.071,
+   0.913
+  ],
+  "lon": 36.162831,
+  "lat": 36.200416
+ },
+ {
+  "id": "turkey-earthquake_00001029_0019",
+  "true": "destroyed",
+  "pred": "destroyed",
+  "probs": [
+   0.009,
+   0.01,
+   0.981
+  ],
+  "lon": 36.160033,
+  "lat": 36.210332
+ },
+ {
+  "id": "turkey-earthquake_00001064_0054",
+  "true": "destroyed",
+  "pred": "destroyed",
+  "probs": [
+   0.045,
+   0.002,
+   0.953
+  ],
+  "lon": 36.158121,
+  "lat": 36.202726
+ },
+ {
+  "id": "turkey-earthquake_00001053_0130",
+  "true": "destroyed",
+  "pred": "destroyed",
+  "probs": [
+   0.011,
+   0.073,
+   0.917
+  ],
+  "lon": 36.156134,
+  "lat": 36.205567
+ }
+]
