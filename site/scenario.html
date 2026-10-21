@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enkaz — if the Marmara fault breaks</title>
+<meta name="description" content="A Mw 7.5 earthquake scenario for Istanbul built from published models: shaking, building damage, deaths, blocked streets, hospital access, bridges and rail, with their uncertainty.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css" rel="stylesheet">
+</head>
+<body>
+<header class="masthead">
+  <a class="brand" href="./">Enkaz</a>
+  <nav><a href="./">Antakya</a><a href="istanbul.html">Istanbul</a><a href="#shaking">Shaking</a><a href="#buildings">Buildings</a><a href="#streets">Streets</a><a href="#method">Method</a></nav>
+</header>
+
+<section class="hero">
+  <p class="kicker">Istanbul · a scenario, not a forecast</p>
+  <h1>If the Marmara fault breaks</h1>
+  <p class="lede">A magnitude 7.5 earthquake on the 104 km of the North Anatolian Fault that runs under the
+    Sea of Marmara, 15–25 km off Istanbul's southern coast, at night. What follows is what published
+    models of ground shaking, buildings and people say would happen, run 200 times to show how sure
+    they are.</p>
+  <div class="stats five" id="stats"></div>
+  <p class="note">Mean of 200 simulated earthquakes; the range below each number holds 90 % of them.</p>
+</section>
+
+<section id="shaking" class="band alt">
+  <div class="col wide">
+    <h2>How hard the ground shakes</h2>
+    <p>Shaking is strongest along the southern coast, closest to the fault, and where soft ground
+      amplifies it. Each square is one kilometre; the line in the sea is the rupture.</p>
+    <div class="seg" id="mapSeg">
+      <button data-v="mmi" class="on">Shaking</button><button data-v="vs30">Ground</button><button data-v="heavy">Heavy damage</button><button data-v="roads">Blocked streets</button><button data-v="access">Hospital access</button>
+    </div>
+    <div id="mapview"></div>
+    <div class="keys" id="mapKey"></div>
+    <p class="caption" id="mapNote"></p>
+  </div>
+  <div class="col">
+    <p class="chart-title">Shaking fades with distance from the fault</p>
+    <p class="chart-sub">Peak ground acceleration on firm soil (Vs30 = 300 m/s): median and the band holding
+      68 % of earthquakes, for the two ground-motion models. Dots: every 1 km cell of the city (average over runs).</p>
+    <div class="chart" id="cAtten"></div>
+    <div class="keys" id="kAtten"></div>
+
+    <p class="chart-title">Who and what sits in strong shaking</p>
+    <p class="chart-sub">Modified Mercalli intensity at each place. VI: furniture moves, weak plaster cracks.
+      VII: damage to poorly built buildings. VIII: partial collapse of poorly built ones.</p>
+    <div class="multi" id="cExposure"></div>
+  </div>
+</section>
+
+<section id="buildings" class="band">
+  <div class="col">
+    <h2>What happens to buildings</h2>
+    <p id="bLead"></p>
+    <p class="chart-title">The city's 1.2 million buildings, by damage</p>
+    <p class="chart-sub">Expected share in each damage state, mean of 200 earthquakes.</p>
+    <div class="chart" id="cStates"></div>
+    <div class="keys" id="kStates"></div>
+
+    <p class="chart-title">The same earthquake, 200 times</p>
+    <p class="chart-sub">Buildings with extensive or complete damage in each simulated earthquake. The spread
+      is the uncertainty of the ground motion models: the same magnitude on the same fault can shake twice as hard.</p>
+    <div class="chart" id="cHist"></div>
+    <div class="keys" id="kHist"></div>
+
+    <p class="chart-title">District by district</p>
+    <p class="chart-sub">Buildings with extensive or complete damage: mean and the 90 % range of the
+      scenario, next to İBB's own estimate of very heavily and heavily damaged buildings.</p>
+    <div class="chart" id="cDistricts"></div>
+    <div class="keys" id="kDistricts"></div>
+
+    <p class="chart-title">Where it agrees with İBB, and where it does not</p>
+    <p class="chart-sub">Each dot is a mahalle: heavily damaged buildings per 1,000 in this scenario
+      against İBB's estimate. Dots on the line would agree exactly.</p>
+    <div class="chart" id="cValid"></div>
+
+    <p class="chart-title">Why buildings fail at different shaking</p>
+    <p class="chart-sub">ESRM20 fragility curves for the three most common building types: the chance of
+      reaching each damage state as shaking grows. Each type is measured at the period it is most sensitive to.</p>
+    <div class="multi" id="cFrag"></div>
+    <div class="keys" id="kFrag"></div>
+  </div>
+</section>
+
+<section id="streets" class="band alt">
+  <div class="col">
+    <h2>Streets, hospitals, bridges, rail</h2>
+    <p>A collapsing building throws debris about half its height into the street. Where less than
+      3 metres stay open, an ambulance or fire engine cannot pass. In Istanbul's narrow residential
+      streets that happens often; on main roads, which are wide, rarely.</p>
+    <p class="chart-title">Street length blocked, by road type</p>
+    <p class="chart-sub">Mean and 90 % range over 40 simulated earthquakes.</p>
+    <div class="chart" id="cRoads"></div>
+
+    <p class="chart-title">Travel time to the nearest hospital</p>
+    <p class="chart-sub">Share of residents who can reach a hospital by road within a given time, before the
+      earthquake and with the blocked streets of each simulated earthquake (thin lines).</p>
+    <div class="chart" id="cAccess"></div>
+    <div class="keys" id="kAccess"></div>
+
+    <div class="two">
+      <div>
+        <p class="chart-title">Rail lines by shaking</p>
+        <p class="chart-sub">Kilometres of track in each intensity band.</p>
+        <div class="chart" id="cRail"></div>
+        <div class="keys" id="kRail"></div>
+      </div>
+      <div>
+        <p class="chart-title">Bridges</p>
+        <p class="chart-sub">Mean intensity at the major crossings; the scenario does not model bridge damage.</p>
+        <table class="plain" id="tBridges"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="method" class="band">
+  <div class="col">
+    <h2>How this is built, and what it leaves out</h2>
+    <ul class="limits">
+      <li><strong>Rupture.</strong> The Main Marmara Fault from the Central Marmara Basin to Çınarcık, as
+        mapped in GEM's Global Active Faults database (EMME catalogue): 104 km, vertical, right-lateral,
+        0–20 km deep, Mw 7.5, the magnitude İBB uses.</li>
+      <li><strong>Ground motion.</strong> Akkar, Sandıkkaya &amp; Bommer (2014) and Boore et al. (2014), equal
+        weight, computed with OpenQuake. 100 earthquakes per model, each with its own between-event term and a
+        spatially correlated within-event field (Jayaram &amp; Baker 2009), correlated across periods (Baker &amp;
+        Jayaram 2008). Site conditions from topographic slope (Wald &amp; Allen 2007) on the Copernicus DEM.</li>
+      <li><strong>Buildings.</strong> 1.2 million footprints (OpenStreetMap + Microsoft). Building types from the
+        European Seismic Risk Model ESRM20 for Istanbul, reweighted per mahalle by İBB's data on building age and
+        height; storeys from OpenStreetMap where tagged. Damage and deaths from ESRM20's fragility and
+        loss-of-life functions; 15.1 million night-time residents spread over floor area.</li>
+      <li><strong>Streets and hospitals.</strong> 20,700 km of OSM roads; 417 hospitals; debris reach 0.5 × building
+        height, 3 m minimum passage; travel at typical speeds by road type, without traffic.</li>
+      <li><strong>Not modelled:</strong> tsunami, landslides, liquefaction, fires, aftershocks, damage to bridges,
+        tunnels, pipelines and power, traffic and evacuation, and day-time occupancy.</li>
+    </ul>
+    <p class="callout" id="disagree"></p>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Fault: GEM Global Active Faults (CC BY-SA 4.0). Exposure, fragility and loss-of-life models: ESRM20, EFEHR
+    (CC BY 4.0). Elevation: Copernicus DEM GLO-90. Buildings and roads © OpenStreetMap contributors (ODbL); Microsoft
+    Global ML Building Footprints (ODbL). İBB scenario and building stock: İBB Open Data. Ground motion: OpenQuake
+    (GEM). Basemap © OpenStreetMap contributors, OpenFreeMap.</p>
+</footer>
+<div class="tip" id="tip"></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="scenario.js"></script>
+</body>
+</html>

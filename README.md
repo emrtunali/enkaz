@@ -238,6 +238,51 @@ The CSVs are İBB's open datasets *Deprem Senaryosu Analiz Sonuçları* and *Mah
 Sayıları*, from [data.ibb.gov.tr](https://data.ibb.gov.tr); `ms/` holds Microsoft's files for the
 quadkeys `istanbul.quadkeys(istanbul.BBOX)` returns (listed in `istanbul.MS_LINKS`).
 
+## Istanbul earthquake scenario
+
+[**The scenario page**](https://emrtunali.github.io/enkaz/scenario.html) runs a Mw 7.5 earthquake on the
+Main Marmara Fault, at night, 200 times. It is a *scenario*, not a forecast: it shows what published
+models say happens, and how far apart their answers are.
+
+| Step | Model or data |
+|---|---|
+| Rupture | Main Marmara Fault, Central Marmara Basin to Çınarcık (GEM Global Active Faults, EMME): 104 km, vertical, right-lateral, 0–20 km, Mw 7.5 (İBB's scenario magnitude) |
+| Ground motion | Akkar, Sandıkkaya & Bommer (2014) and Boore et al. (2014), 100 earthquakes each, via OpenQuake; between-event term shared across periods and spatially correlated within-event fields (Jayaram & Baker 2009), both correlated across periods (Baker & Jayaram 2008) |
+| Site | Vs30 from topographic slope (Wald & Allen 2007) on the Copernicus GLO-90 DEM, 1 km cells |
+| Buildings | the 1.2 M footprint inventory; building types from ESRM20's Istanbul exposure, reweighted per mahalle by İBB's age and height data; storeys from OSM where tagged |
+| Damage, deaths | ESRM20 fragility and loss-of-life functions per type; 15.1 M night-time residents spread over floor area |
+| Streets | 20,700 km of OSM roads; debris reach 0.5 × building height, a street is blocked below 3 m of free width |
+| Hospitals | 417 hospitals; travel time on the remaining network (multi-source Dijkstra) |
+
+Results, mean over 200 earthquakes (90 % range):
+
+| | This scenario | İBB's estimate |
+|---|---:|---:|
+| Buildings with extensive or complete damage | **180 K** (61 K – 323 K) | 47 K very heavy or heavy |
+| Moderate damage | 82 K (51 K – 110 K) | 143 K |
+| Deaths (night) | **24.5 K** (7.7 K – 44 K) | 13.9 K |
+| Streets blocked | 1,743 km, 85 % of it residential streets (15 % of them) | – |
+| Residents more than 30 min by road from a hospital | **8.9 %** (3.8 – 14.4 %), from 0.7 % | – |
+| Intensity at the Bosphorus bridges | VI–VII (Haliç VII) | – |
+
+Where the damage falls agrees with İBB reasonably well (correlation 0.68 across mahalle of heavily
+damaged buildings per 1,000), but the level is about four times higher. The main reason is the
+fragility model: ESRM20's curves for low-code concrete frames, Istanbul's most common building type,
+rise from slight to complete damage within a factor of two in shaking. Moderate shaking therefore
+already brings many of them to "complete", where İBB's model has them heavily damaged. Neither model has
+been tested against an Istanbul earthquake, so the gap between them is part of the uncertainty.
+The spread *within* this scenario is just as large: the same magnitude on the same fault can shake
+twice as hard, depending on the between-event term.
+
+Not modelled: tsunami, landslides, liquefaction, fire, aftershocks, damage to bridges, tunnels and
+lifelines, traffic, day-time occupancy. To rerun (OpenQuake 3.16 with NumPy < 2, about a minute after
+the first run):
+
+```bash
+python scripts/istanbul_scenario.py --pbf turkey-latest.osm.pbf --stock bina-sayilari.csv \
+    --dem dem/ --esrm esrm/ --realizations 100
+```
+
 ## Responsible use
 
 The output is a **ranking of where to look first**, meant to sit next to expert image analysts and
@@ -288,8 +333,9 @@ src/enkaz/
   export.py      test-city export for the web page
   istanbul.py    Istanbul inventory: OSM footprints and boundaries, İBB scenario join
   respond.py     post-event scenes + footprints + checkpoint -> ranked buildings
+  scenario.py    Istanbul scenario pieces: Vs30, intensity, building classes, fragility, debris
 notebooks/train.ipynb   the whole run, stage by stage
-scripts/                web export, Istanbul inventory, README figures
+scripts/                web export, Istanbul inventory and scenario, Colab checks, README figures
 site/                   static web page (MapLibre), deployed to GitHub Pages
 tests/                  CPU-only unit tests
 ```
@@ -314,6 +360,8 @@ Ideas, roughly in order of expected value:
 
 Imagery © Maxar Technologies, Maxar Open Data Program (CC BY-NC 4.0). Labels: BRIGHT (Chen et al.,
 2025). Reference gradings © European Union, Copernicus Emergency Management Service (EMSR648).
+Scenario: GEM Global Active Faults (CC BY-SA 4.0), ESRM20 exposure, fragility and loss-of-life models
+(EFEHR, CC BY 4.0), Copernicus DEM GLO-90, OpenQuake (GEM).
 Istanbul buildings and boundaries © OpenStreetMap contributors (ODbL); machine-made footprints:
 Microsoft Global ML Building Footprints (ODbL); scenario estimates and
 building stock © İstanbul Büyükşehir Belediyesi (İBB Open Data Licence).
