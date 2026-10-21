@@ -107,7 +107,7 @@ What this says:
 * **Calibration does not transfer perfectly either.** ECE is ≈ 0.01 on the validation city where
   the temperature was fitted, and 0.08–0.12 on Antakya.
 
-The [web page](site/) shows the Antakya map and a before/after gallery of correct and wrong
+The [web page](https://emrtunali.github.io/enkaz/) shows the Antakya map and a before/after gallery of correct and wrong
 predictions, using the model the protocol selected.
 
 ## Limitations
