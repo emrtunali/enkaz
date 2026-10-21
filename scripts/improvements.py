@@ -37,7 +37,7 @@ def calib(kind):
 def stage_ci_ensemble():
     rows = test_rows()
     tiles = rows["test"]["tile"].to_numpy()
-    z = {k: np.load(runs / k / "test_logits.npz") for k in ("siamese", "post_only")}
+    z = {k: dict(np.load(runs / k / "test_logits.npz")) for k in ("siamese", "post_only")}
     assert (z["siamese"]["y"] == z["post_only"]["y"]).all()
     y, yv = z["post_only"]["y"], z["post_only"]["val_y"]
     out = {"metrics": ["macro_f1", "auroc", "destroyed_top10", "ece"], "n_boot": N_BOOT}

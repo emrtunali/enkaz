@@ -34,7 +34,7 @@ def stage_train_alt():
 
 def stage_eval_alt():
     ev = learn.evaluate("post_only", run2 / "post_only", rows2["val"], rows2["test"], store2)
-    z = np.load(run2 / "post_only" / "test_logits.npz")
+    z = dict(np.load(run2 / "post_only" / "test_logits.npz"))  # read once, not per resample
     t, b = ev["val_bias"]["temperature"], ev["val_bias"]["bias"]
     tiles = rows2["test"]["tile"].to_numpy()
     s = M.cluster_bootstrap(tiles, lambda i: M.headline(z["logits"][i], z["y"][i], t, b), 1000)
