@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enkaz — the earthquake, second by second</title>
+<meta name="description" content="An animated Marmara earthquake for Istanbul: the fault breaking, P and S waves crossing the city, and buildings collapsing where and when the models say, for magnitudes 6.5 to 7.7.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<link href="style.css?v=9" rel="stylesheet">
+</head>
+<body>
+<header class="masthead">
+  <a class="brand" href="./">Enkaz</a>
+  <nav><a href="./">Antakya</a><a href="istanbul.html">Istanbul</a><a href="scenario.html">Scenario</a><a href="#how">How it works</a></nav>
+</header>
+
+<section class="hero quake-hero">
+  <p class="kicker">Istanbul · simulation</p>
+  <h1>The earthquake, second by second</h1>
+  <p class="lede">Choose a magnitude and press play. The fault under the Sea of Marmara breaks, the first
+    jolt (P wave) and then the strong shaking (S wave) cross the city at their real speeds, and buildings
+    collapse where and when the damage models say. Time runs at real speed unless you speed it up.</p>
+</section>
+
+<section class="quake">
+  <div id="quakemap"></div>
+  <div class="qpanel qcontrols">
+    <div class="qrow">
+      <span class="qlabel">Magnitude</span>
+      <div class="seg dark" id="magSeg"></div>
+    </div>
+    <div class="qrow">
+      <button class="qbtn" id="play" aria-label="Play">▶ Play</button>
+      <button class="qbtn ghost" id="restart" aria-label="Restart">↺</button>
+      <div class="seg dark small" id="speedSeg">
+        <button data-v="1" class="on">1×</button><button data-v="2">2×</button><button data-v="5">5×</button>
+      </div>
+    </div>
+    <div class="qrow">
+      <span class="qclock" id="clock">0.0 s</span>
+      <input type="range" id="scrub" min="0" max="60" step="0.1" value="0" aria-label="Time">
+    </div>
+    <div class="qphase" id="phase">The fault is locked.</div>
+  </div>
+  <div class="qpanel qstats">
+    <div class="qstat"><div class="n" id="sCollapsed">0</div><div class="l">buildings collapsed</div></div>
+    <div class="qstat"><div class="n" id="sHeavy">0</div><div class="l">heavily damaged</div></div>
+    <div class="qstat"><div class="n" id="sShaking">0</div><div class="l">people in strong shaking now</div></div>
+    <div class="qstat"><div class="n" id="sDeaths">0</div><div class="l">deaths (model estimate)</div></div>
+    <div class="qseis">
+      <div class="qseis-head"><span id="seisPlace">Fatih</span> · ground acceleration <span class="muted">(illustrative)</span></div>
+      <canvas id="seis" height="64"></canvas>
+    </div>
+    <table class="qplaces" id="places"></table>
+    <div class="qhint">Click a place to fly there and watch its buildings.</div>
+    <button class="qbtn ghost qwide" id="overview">Back to the whole city</button>
+  </div>
+  <div class="qlegend">
+    <span><i class="ring p"></i>P wave front</span><span><i class="ring s"></i>S wave front</span>
+    <span><i class="bar rup"></i>breaking fault</span><span><i class="dot c"></i>collapsed</span>
+    <span><i class="dot e"></i>heavily damaged</span><span><i class="sw"></i>intensity V → VIII</span>
+  </div>
+</section>
+
+<section class="band" id="summaryBand">
+  <div class="col">
+    <h2 id="sumTitle">After the shaking</h2>
+    <p id="sumText"></p>
+    <div class="tablewrap"><table class="plain" id="magTable"></table></div>
+  </div>
+</section>
+
+<section id="how" class="band alt">
+  <div class="col">
+    <h2>What is real here, and what is simplified</h2>
+    <ul class="limits">
+      <li><strong>The fault and the rupture.</strong> The Main Marmara Fault as mapped in GEM's Global Active Faults
+        database. Rupture length and width grow with magnitude (Wells &amp; Coppersmith 1994: 29 km at Mw 6.5, 120 km at
+        7.5, 160 km at 7.7), centred on the Kumburgaz segment south of Istanbul, breaking both ways at 2.8 km/s.</li>
+      <li><strong>The waves.</strong> P waves at 6 km/s and S waves at 3.5 km/s from a 10 km deep hypocentre, so the
+        first jolt reaches central Istanbul 5–9 s after the fault starts to break and the strong shaking 3–7 s later.
+        That gap is what an earthquake early-warning system has to work with. Shaking lasts longer for bigger
+        ruptures and further away (an approximation: source duration plus 0.1 s per km).</li>
+      <li><strong>How hard it shakes.</strong> Two ground-motion models (Akkar et al. 2014, Boore et al. 2014) through
+        OpenQuake, 80 simulated earthquakes per magnitude with spatially correlated variability, site conditions from
+        topographic slope. Colours show the mean intensity per kilometre square.</li>
+      <li><strong>Which buildings fail.</strong> 1.2 million real building footprints with building types from ESRM20 and
+        İBB's age and height data. Each building's chance of complete or extensive damage is averaged over the 80
+        earthquakes, and one plausible outcome is drawn from those chances; each drawn building fails at a random
+        moment while it shakes. Run it again with another magnitude and different buildings fail.</li>
+      <li><strong>Calibration.</strong> Uncalibrated, ESRM20's fragility curves predict about four times İBB's damage
+        estimate. Here all curves are stretched by one factor (<span id="calF">2.3</span>×) so that Mw 7.5 matches
+        İBB's 46,600 very heavily or heavily damaged buildings; the other magnitudes keep that factor. Deaths follow
+        from the same models and are not calibrated; they come out below İBB's 13,900 for Mw 7.5.</li>
+      <li><strong>Not shown:</strong> tsunami, landslides, liquefaction, fires, aftershocks, bridges and tunnels. The
+        seismogram is an illustration scaled to the modelled peak acceleration, not a simulated record.</li>
+    </ul>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>Fault: GEM Global Active Faults (CC BY-SA 4.0). Fragility, loss of life, exposure: ESRM20, EFEHR (CC BY 4.0). Ground
+    motion: OpenQuake (GEM). Buildings © OpenStreetMap contributors (ODbL) and Microsoft Global ML Building Footprints
+    (ODbL). Damage level calibrated to İBB's earthquake scenario (İBB Open Data). Basemap © OpenStreetMap contributors,
+    OpenFreeMap.</p>
+</footer>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/deck.gl@9.0.38/dist.min.js"></script>
+<script src="earthquake.js"></script>
+</body>
+</html>

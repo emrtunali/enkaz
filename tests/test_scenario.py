@@ -82,3 +82,30 @@ def test_debris_and_blocking():
         np.array([True, True, False, False]),
     )
     assert edges.tolist() == [True, False, False]
+
+
+def test_rupture_scaling():
+    assert S.rupture_length_km(7.5) == pytest.approx(120, rel=0.05)
+    assert S.rupture_length_km(6.5) == pytest.approx(28, rel=0.05)
+    assert 15 < S.rupture_width_km(7.5) < 20
+
+
+def test_sub_trace_stays_on_the_line():
+    line = np.array([[0.0, 0.0], [100.0, 0.0]])
+    pts, c = S.sub_trace(line, center=95.0, length=30.0)
+    assert pts[0, 0] == pytest.approx(70.0) and pts[-1, 0] == pytest.approx(100.0)
+    assert len(pts) == 31
+
+
+def test_arrivals_and_duration():
+    rup = np.column_stack([np.linspace(-20, 20, 41), np.zeros(41)])
+    sites = np.array([[0.0, 30.0], [60.0, 0.0]])
+    tp, ts, r = S.arrival_times(sites, rup, hypo=20, depth=10.0)
+    assert tp[0] == pytest.approx(np.hypot(30, 10) / S.VP_KMS)
+    assert ts[0] == pytest.approx(np.hypot(30, 10) / S.VS_KMS)  # nearest patch is the hypocentre
+    # the rupture (2.8 km/s) is slower than S waves (3.5 km/s): even off the rupture's end the first
+    # S waves come from the hypocentre, not from the tip that broke later
+    assert ts[1] == pytest.approx(np.hypot(60, 10) / S.VS_KMS, rel=1e-6)
+    assert ts[1] < 20 / S.VR_KMS + np.hypot(40, 10) / S.VS_KMS
+    assert (ts > tp).all()
+    assert S.strong_duration(120, np.array([0.0]))[0] == pytest.approx(120 / (2 * S.VR_KMS) + 2)

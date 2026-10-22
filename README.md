@@ -328,6 +328,34 @@ python scripts/istanbul_scenario.py --pbf turkey-latest.osm.pbf --stock bina-say
     --dem dem/ --esrm esrm/ --realizations 100
 ```
 
+### The earthquake, second by second
+
+[**The animation**](https://emrtunali.github.io/enkaz/earthquake.html) plays the earthquake on the map for
+Mw 6.5, 7.0, 7.2, 7.5 or 7.7 ([`scripts/istanbul_animation.py`](scripts/istanbul_animation.py)):
+
+* **Rupture.** Length and width from Wells & Coppersmith (1994): 29 km at Mw 6.5, 120 km at 7.5,
+  160 km at 7.7, centred on the Kumburgaz segment and breaking both ways at 2.8 km/s.
+* **Waves.** P (6 km/s) and S (3.5 km/s) fronts from a 10 km deep hypocentre. Because the rupture is
+  slower than the S waves, the first arrivals everywhere come from the hypocentre, so the fronts
+  are true circles; strong shaking then lasts for the source duration plus 0.1 s per km. The P wave
+  reaches Fatih 5–9 s after the start, the S wave 3.6–6.6 s later: that is what an early-warning
+  system has to work with.
+* **Damage.** The same shaking and fragility models as the scenario, 80 simulated earthquakes per
+  magnitude. Each building's chance of complete or extensive damage is averaged, one plausible
+  outcome is drawn, and each drawn building fails at a random moment while it shakes.
+* **Calibration.** Uncalibrated, ESRM20 gives about four times İBB's damage. For the animation all
+  fragility curves are stretched by one factor (2.26) so that Mw 7.5 matches İBB's 46,600 very
+  heavily or heavily damaged buildings; other magnitudes keep that factor. Deaths are not calibrated
+  (6,300 at Mw 7.5, against İBB's 13,900).
+
+| Mw | Rupture | Collapsed | Heavily damaged | Deaths | Fatih: P → S |
+|---:|---:|---:|---:|---:|---:|
+| 6.5 | 29 km | 6.9 K | 4.6 K | 1.5 K | 3.6 s |
+| 7.0 | 59 km | 14.8 K | 8.6 K | 3.2 K | 3.6 s |
+| 7.2 | 78 km | 20.5 K | 11.3 K | 4.1 K | 3.6 s |
+| 7.5 | 120 km | 30.7 K | 15.9 K | 6.3 K | 4.5 s |
+| 7.7 | 160 km | 35.1 K | 18.3 K | 7.0 K | 6.6 s |
+
 ## Responsible use
 
 The output is a **ranking of where to look first**, meant to sit next to expert image analysts and

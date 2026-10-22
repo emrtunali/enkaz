@@ -98,16 +98,22 @@ def vs30_at(lon, lat, dem_dir: Path):
 # --------------------------------------------------------------------------- ground motion
 
 
-def rupture():
+def rupture(trace=None, mag=None, lower_km=None):
+    """The scenario rupture; the animation passes shorter or longer traces for other magnitudes."""
     from openquake.hazardlib.const import TRT
     from openquake.hazardlib.geo import Line, Point
     from openquake.hazardlib.geo.surface import SimpleFaultSurface
     from openquake.hazardlib.source.rupture import BaseRupture
 
     surf = SimpleFaultSurface.from_fault_data(
-        Line([Point(x, y) for x, y in S.FAULT_TRACE]), S.UPPER_KM, S.LOWER_KM, 90.0, 2.0
+        Line([Point(x, y) for x, y in (trace or S.FAULT_TRACE)]),
+        S.UPPER_KM,
+        lower_km or S.LOWER_KM,
+        90.0,
+        2.0,
     )
-    return BaseRupture(S.MAG, S.RAKE, TRT.ACTIVE_SHALLOW_CRUST, surf.get_middle_point(), surf)
+    m = mag or S.MAG
+    return BaseRupture(m, S.RAKE, TRT.ACTIVE_SHALLOW_CRUST, surf.get_middle_point(), surf)
 
 
 def sitecol(lon, lat, vs30):
@@ -133,7 +139,7 @@ def gsim(name):
     }[name]()
 
 
-def ground_motion(cells, vs30, realizations, seed=42):
+def ground_motion(cells, vs30, realizations, seed=42, rup=None):
     """Correlated ground-motion fields, sampled here rather than with OpenQuake's own sampler.
 
     OpenQuake supplies each GMPE's mean, between-event (tau) and within-event (phi) standard
@@ -148,7 +154,7 @@ def ground_motion(cells, vs30, realizations, seed=42):
     from openquake.hazardlib.cross_correlation import BakerJayaram2008
     from openquake.hazardlib.imt import from_string
 
-    rup, sc = rupture(), sitecol(cells["lon"], cells["lat"], vs30)
+    rup, sc = rup or rupture(), sitecol(cells["lon"], cells["lat"], vs30)
     imts = [from_string(i) for i in S.IMTS]
     bj = BakerJayaram2008()
     C = np.array([[bj.get_correlation(a, b) for b in imts] for a in imts])

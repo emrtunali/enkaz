@@ -114,3 +114,57 @@ table.plain td.n { text-align: right; }
   .multi, .two { grid-template-columns: 1fr; }
   .stats.five { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* earthquake animation */
+.quake-hero { padding-bottom: 28px; }
+.quake { position: relative; height: 82vh; min-height: 560px; border-top: 1px solid var(--rule); background: #0f1114; }
+#quakemap { position: absolute; inset: 0; }
+.qpanel { position: absolute; z-index: 5; background: rgba(18, 20, 24, 0.86); color: #ece8df; backdrop-filter: blur(6px);
+  border: 1px solid rgba(255,255,255,.08); font-size: 13px; }
+.qcontrols { left: 16px; top: 16px; padding: 14px 16px; width: 330px; display: grid; gap: 10px; }
+.qstats { right: 16px; top: 16px; padding: 14px 16px; width: 290px; max-height: calc(100% - 80px); overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.qrow { display: flex; align-items: center; gap: 10px; }
+.qlabel { color: #a9a395; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.seg.dark { border-color: rgba(255,255,255,.35); }
+.seg.dark button { color: #ece8df; padding: 5px 10px; font-size: 13px; }
+.seg.dark button.on { background: #ece8df; color: #121418; }
+.seg.small button { padding: 4px 8px; }
+.qbtn { font: inherit; font-weight: 600; background: #b04a30; color: #fff; border: 0; padding: 7px 14px; cursor: pointer; }
+.qbtn.ghost { background: transparent; border: 1px solid rgba(255,255,255,.35); color: #ece8df; padding: 6px 10px; }
+.qclock { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 20px; min-width: 70px; }
+#scrub { flex: 1; accent-color: #b04a30; }
+.qphase { color: #d8d2c6; min-height: 2.8em; line-height: 1.4; }
+.qstat .n { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.qstat .l { color: #a9a395; font-size: 12px; line-height: 1.3; }
+.qseis { grid-column: 1 / -1; }
+.qseis-head { font-size: 12px; color: #a9a395; margin-bottom: 4px; }
+.qseis-head .muted { color: #7d786d; }
+#seis { width: 100%; display: block; background: rgba(255,255,255,.03); }
+.qhint { grid-column: 1 / -1; color: #7d786d; font-size: 11.5px; }
+.qwide { grid-column: 1 / -1; font-size: 12px; font-weight: 500; }
+.qplaces tr { cursor: pointer; } .qplaces tr:hover td { color: #fff; }
+.qplaces { grid-column: 1 / -1; border-collapse: collapse; width: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.qplaces td { padding: 3px 2px; border-top: 1px solid rgba(255,255,255,.07); }
+.qplaces td.n { text-align: right; color: #a9a395; }
+.qplaces .st { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: #4a4e57; }
+.qplaces .st.p { background: #6da7ec; }
+.qplaces .st.s { background: #e8643a; box-shadow: 0 0 6px #e8643a; }
+.qplaces .st.done { background: #8d6b5c; }
+.qlegend { position: absolute; z-index: 5; left: 16px; bottom: 16px; display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px;
+  color: #d8d2c6; background: rgba(18,20,24,.78); padding: 7px 12px; max-width: calc(100% - 32px); }
+.qlegend i { display: inline-block; vertical-align: -2px; margin-right: 6px; }
+.qlegend .ring { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; }
+.qlegend .ring.p { border-color: #6da7ec; } .qlegend .ring.s { border-color: #e8643a; }
+.qlegend .bar.rup { width: 16px; height: 3px; background: #ff5a36; vertical-align: 3px; }
+.qlegend .dot { width: 8px; height: 8px; border-radius: 50%; } .qlegend .dot.c { background: #ff3b2f; } .qlegend .dot.e { background: #f0a23c; }
+.qlegend .sw { width: 46px; height: 8px; background: linear-gradient(90deg, #f1e6d8, #e9c9ad, #dc9a72, #b04a30, #6e2019); }
+@media (max-width: 860px) {
+  .quake { height: auto; min-height: 0; display: flex; flex-direction: column; background: var(--paper); }
+  #quakemap { position: relative; height: 62vh; order: 1; }
+  .qpanel { position: static; width: auto; max-height: none; backdrop-filter: none; }
+  .qcontrols { order: 0; }
+  .qstats { order: 2; grid-template-columns: 1fr 1fr; }
+  .qlegend { position: static; order: 3; max-width: none; }
+}
+
+.tablewrap { overflow-x: auto; max-width: 100%; }

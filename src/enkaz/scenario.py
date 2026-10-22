@@ -198,3 +198,55 @@ def blocked_edges(n_edges: int, pair_edge: np.ndarray, pair_free: np.ndarray,
     out = np.zeros(n_edges, bool)
     out[pair_edge[hit]] = True
     return out
+
+
+# --------------------------------------------------------------------------- animation
+
+VP_KMS, VS_KMS = 6.0, 3.5  # crustal P and S wave speeds
+VR_KMS = 0.8 * VS_KMS  # rupture speed, a typical 80 % of the S wave speed
+CENTROID_KM = 10.0  # depth of the rupture's energy release used for travel times
+
+
+def rupture_length_km(mag: float) -> float:
+    """Subsurface rupture length of a strike-slip earthquake (Wells & Coppersmith, 1994)."""
+    return 10 ** (-2.57 + 0.62 * mag)
+
+
+def rupture_width_km(mag: float) -> float:
+    """Down-dip rupture width of a strike-slip earthquake (Wells & Coppersmith, 1994)."""
+    return 10 ** (-0.76 + 0.27 * mag)
+
+
+def along(xy: np.ndarray) -> np.ndarray:
+    """Cumulative distance along a polyline (same units as ``xy``)."""
+    return np.concatenate([[0.0], np.cumsum(np.hypot(*np.diff(xy, axis=0).T))])
+
+
+def sub_trace(xy: np.ndarray, center: float, length: float) -> tuple[np.ndarray, float]:
+    """The piece of a polyline of ``length`` centred at along-distance ``center``, shifted to stay
+    on the line. Returns the densified piece (1 km steps) and where its centre ended up."""
+    s = along(xy)
+    half = min(length, s[-1]) / 2
+    c = float(np.clip(center, half, s[-1] - half))
+    q = np.linspace(c - half, c + half, max(int(2 * half) + 1, 2))
+    pts = np.column_stack([np.interp(q, s, xy[:, 0]), np.interp(q, s, xy[:, 1])])
+    return pts, c - (c - half)
+
+
+def arrival_times(sites: np.ndarray, rup: np.ndarray, hypo: int, depth: float = CENTROID_KM):
+    """First P arrival (from the hypocentre) and first S arrival (from whichever ruptured patch
+    gets its S waves there first, counting the time the rupture takes to reach the patch), in s.
+
+    ``sites`` (n, 2) and ``rup`` (m, 2) are in km; ``hypo`` indexes ``rup``.
+    """
+    t_rup = np.abs(along(rup) - along(rup)[hypo]) / VR_KMS
+    d = np.sqrt(((sites[:, None, :] - rup[None, :, :]) ** 2).sum(-1) + depth**2)
+    tp = d[:, hypo] / VP_KMS
+    ts = (t_rup[None, :] + d / VS_KMS).min(axis=1)
+    return tp, ts, d.min(axis=1)
+
+
+def strong_duration(length_km: float, r_km: np.ndarray) -> np.ndarray:
+    """Approximate duration of strong shaking (s): the bilateral source duration, plus a path term
+    of 0.1 s per km and a 2 s floor; the order of magnitude of significant-duration models."""
+    return length_km / (2 * VR_KMS) + 0.1 * np.asarray(r_km) + 2.0
