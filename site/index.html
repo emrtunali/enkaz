@@ -13,7 +13,7 @@
 <body>
 <header class="masthead">
   <span class="brand">Enkaz</span>
-  <nav><a href="#how">How it works</a><a href="#map">Antakya</a><a href="#results">Results</a><a href="#limits">Limits</a><a href="istanbul.html">Istanbul</a><a href="scenario.html">Scenario</a><a href="https://github.com/emrtunali/enkaz">Code</a></nav>
+  <nav><a href="#how">How it works</a><a href="#map">Antakya</a><a href="#field">On the day</a><a href="#results">Results</a><a href="#limits">Limits</a><a href="istanbul.html">Istanbul</a><a href="scenario.html">Scenario</a><a href="https://github.com/emrtunali/enkaz">Code</a></nav>
 </header>
 
 <section class="hero">
@@ -60,6 +60,28 @@
   </div>
 </section>
 
+<section id="field" class="band">
+  <div class="col wide">
+    <h2>The list a field team would get</h2>
+    <p>The same model, run the way it would run on the day: building footprints made before the earthquake
+      (Microsoft's machine-made footprints), the Maxar scene released five days after it, no labels. The result
+      is a ranking. Below are its first 500 buildings, coloured by what the experts later found there.</p>
+    <div class="seg" id="fieldSeg">
+      <button data-v="100">Top 100</button><button data-v="500" class="on">Top 500</button>
+    </div>
+    <div id="fieldmap"></div>
+    <div class="legend" id="fieldLegend"></div>
+    <p class="caption" id="fieldNote"></p>
+  </div>
+  <div class="col">
+    <h3>How many destroyed buildings each extra inspection finds</h3>
+    <p class="note">Share of all destroyed buildings found by checking the buildings in ranked order, for the
+      response pipeline, the evaluation pipeline and a random order.</p>
+    <div class="chart" id="fieldCurve"></div>
+    <div class="keys" id="fieldKeys"></div>
+  </div>
+</section>
+
 <section id="results" class="band">
   <div class="col">
     <h2>How well does it work?</h2>
@@ -96,7 +118,10 @@
   <p class="memorial">In memory of the more than 50,000 people who lost their lives in Türkiye on 6 February 2023.</p>
 </footer>
 
+<div class="tip" id="tip"></div>
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="app.js"></script>
+<script src="field.js"></script>
 </body>
 </html>

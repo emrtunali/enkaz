@@ -47,7 +47,7 @@ h3 { font-size: 21px; margin: 32px 0 10px; }
 .thumbs img { width: 100%; display: block; aspect-ratio: 1; object-fit: cover; }
 .thumbs i { position: absolute; left: 3px; bottom: 3px; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #fff; }
 
-#mapview { height: 560px; margin: 18px 0 10px; border: 1px solid var(--rule); }
+#mapview, #fieldmap { height: 560px; margin: 18px 0 10px; border: 1px solid var(--rule); }
 .seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--ink); }
 .seg button { font: inherit; font-size: 14px; background: transparent; border: 0; padding: 6px 14px; cursor: pointer; color: var(--ink); }
 .seg button.on { background: var(--ink); color: var(--paper); }

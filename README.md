@@ -138,6 +138,40 @@ destroyed buildings along the river and in the old town are found, but the "dama
 [web page](https://emrtunali.github.io/enkaz/) has the same map interactively (with a
 *Disagreements* view) and a before/after gallery of correct and wrong predictions.
 
+### How sure are these numbers?
+
+95 % intervals from a cluster bootstrap that resamples whole image tiles (1,000 draws), because
+neighbouring buildings share an image, its alignment error and often their fate. Resampling single
+buildings would make the intervals look narrower than they are
+([`scripts/improvements.py`](scripts/improvements.py), [`docs/improvements.json`](docs/improvements.json)).
+
+| Antakya, val-tuned thresholds | Macro-F1 | AUROC | Destroyed in top 10 % | ECE |
+|---|---|---|---|---|
+| Post-only CNN | 0.490 (0.463–0.515) | 0.736 (0.700–0.770) | 55 % (49–60) | 0.075 (0.055–0.098) |
+| Siamese CNN | 0.436 (0.408–0.461) | 0.732 (0.701–0.760) | 51 % (46–56) | 0.121 (0.097–0.148) |
+| Ensemble (mean logits), *adopted on validation* | 0.471 (0.443–0.496) | **0.752** (0.719–0.783) | **57 %** (51–62) | 0.073 (0.051–0.097) |
+
+* The post-only model's lead over the Siamese model on macro-F1 is real; on AUROC and the
+  top-10 % ranking the two are within each other's intervals.
+* **Ensemble.** Averaging the two models' logits beat both on the validation city (macro-F1 0.549
+  vs 0.524), so the protocol adopts it. On Antakya it gives the best ranking (AUROC 0.752, 57 % of
+  destroyed buildings in the top 10 %) and good calibration, but its macro-F1 is lower than the
+  post-only model's: the class offsets tuned on İslahiye again over-call "damaged" in a new city.
+  The ranking transfers; thresholds do not.
+
+**A second test city.** One held-out city is one sample. With the same recipe, the post-only model
+was retrained without Kahramanmaraş (Antakya moved into training, İslahiye stayed the validation
+city) and tested on Kahramanmaraş: 22,885 buildings, only 3 % of them damaged or destroyed.
+
+| Kahramanmaraş, held out | Macro-F1 | AUROC | Destroyed in top 10 % | ECE |
+|---|---|---|---|---|
+| Post-only CNN, val-tuned thresholds | 0.428 (0.395–0.461) | 0.793 (0.729–0.851) | 77 % (63–87) | 0.059 (0.052–0.066) |
+
+The ranking is *better* in Kahramanmaraş than in Antakya, where the damage was far more widespread,
+and macro-F1 is lower: with 3 % damaged buildings the two rare classes are harder to get right, while
+finding the destroyed ones at the top of a ranking is easier. Across two very different cities the
+picture is the same: use the model to rank, not to decide.
+
 ## Limitations
 
 * **Labels come from expert gradings, not ground inspections.** BRIGHT transfers Copernicus EMS
@@ -226,6 +260,17 @@ time: 23,397 buildings in 8 minutes on one GPU. The test-time ranking is also mo
 about "destroyed" (151 intact buildings called destroyed instead of 586), which a field team will
 notice as fewer false alarms at the top of the list. Results:
 [`docs/antakya_respond_check.json`](docs/antakya_respond_check.json).
+
+Paired cluster-bootstrap intervals for the difference (main configuration minus the evaluation
+pipeline, same buildings): macro-F1 **+0.020** (+0.001 to +0.041), AUROC +0.010 (−0.007 to +0.025),
+destroyed in top 10 % −1.5 points (−6.2 to +3.1), ECE **−0.030** (−0.042 to −0.018). So the
+on-the-day pipeline is as good as the careful one on ranking, slightly better on macro-F1 and
+clearly better calibrated.
+
+**What a field team would get.** Of the first 100 buildings in the ranking, 89 have an expert
+label: 74 destroyed, 6 damaged, 9 intact (90 % damaged or destroyed, against 18 % in the whole city).
+Of the first 500, 232 are destroyed, 86 damaged and 100 intact (76 %). The
+[Antakya page](https://emrtunali.github.io/enkaz/#field) maps them.
 
 To rebuild the inventory (about 2 minutes on a laptop):
 
