@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<link href="style.css?v=9" rel="stylesheet">
+<link href="style.css?v=10" rel="stylesheet">
 </head>
 <body>
 <header class="masthead">
@@ -33,34 +33,53 @@
     </div>
     <div class="qrow">
       <button class="qbtn" id="play" aria-label="Play">▶ Play</button>
-      <button class="qbtn ghost" id="restart" aria-label="Restart">↺</button>
+      <button class="qbtn ghost" id="restart" aria-label="Restart" title="Restart">↺</button>
       <div class="seg dark small" id="speedSeg">
         <button data-v="1" class="on">1×</button><button data-v="2">2×</button><button data-v="5">5×</button>
       </div>
-    </div>
-    <div class="qrow">
       <span class="qclock" id="clock">0.0 s</span>
+    </div>
+    <div class="qtimeline">
       <input type="range" id="scrub" min="0" max="60" step="0.1" value="0" aria-label="Time">
+      <div class="qmarks" id="marks"></div>
     </div>
     <div class="qphase" id="phase">The fault is locked.</div>
+    <div class="qlayers" id="layers">
+      <label><input type="checkbox" data-l="shaking" checked><span>Shaking</span></label>
+      <label><input type="checkbox" data-l="buildings" checked><span>Buildings</span></label>
+      <label><input type="checkbox" data-l="streets" checked><span>Blocked streets</span></label>
+      <label><input type="checkbox" data-l="access"><span>Cut off from hospitals</span></label>
+      <label><input type="checkbox" data-l="hospitals"><span>Hospitals</span></label>
+    </div>
   </div>
   <div class="qpanel qstats">
     <div class="qstat"><div class="n" id="sCollapsed">0</div><div class="l">buildings collapsed</div></div>
     <div class="qstat"><div class="n" id="sHeavy">0</div><div class="l">heavily damaged</div></div>
+    <div class="qstat"><div class="n" id="sStreets">0 km</div><div class="l">streets blocked by debris</div></div>
+    <div class="qstat"><div class="n" id="sMajor">0 km</div><div class="l">of it on main roads</div></div>
     <div class="qstat"><div class="n" id="sShaking">0</div><div class="l">people in strong shaking now</div></div>
     <div class="qstat"><div class="n" id="sDeaths">0</div><div class="l">deaths (model estimate)</div></div>
-    <div class="qseis">
-      <div class="qseis-head"><span id="seisPlace">Fatih</span> · ground acceleration <span class="muted">(illustrative)</span></div>
-      <canvas id="seis" height="64"></canvas>
+    <div class="qcard" id="card">
+      <div class="qcard-head"><b id="cardName">Fatih</b><span id="cardState" class="qtag">waiting</span></div>
+      <div class="qcard-grid">
+        <div><span>first jolt</span><b id="cardP">–</b></div>
+        <div><span>strong shaking</span><b id="cardS">–</b></div>
+        <div><span>intensity</span><b id="cardI">–</b></div>
+        <div><span>warning time</span><b id="cardW">–</b></div>
+      </div>
+      <div class="qcard-line" id="cardHosp"></div>
+      <canvas id="seis" height="56"></canvas>
+      <div class="qcard-foot">ground acceleration, illustrative · peak <span id="cardPga">–</span></div>
     </div>
     <table class="qplaces" id="places"></table>
-    <div class="qhint">Click a place to fly there and watch its buildings.</div>
     <button class="qbtn ghost qwide" id="overview">Back to the whole city</button>
   </div>
-  <div class="qlegend">
-    <span><i class="ring p"></i>P wave front</span><span><i class="ring s"></i>S wave front</span>
+  <div class="qlegend" id="legend">
+    <span><i class="ring p"></i>P wave</span><span><i class="ring s"></i>S wave</span>
     <span><i class="bar rup"></i>breaking fault</span><span><i class="dot c"></i>collapsed</span>
-    <span><i class="dot e"></i>heavily damaged</span><span><i class="sw"></i>intensity V → VIII</span>
+    <span><i class="dot e"></i>heavily damaged</span><span><i class="bar st"></i>blocked main road</span>
+    <span><i class="bar sm"></i>blocked street</span><span><i class="sq cut"></i>cut off</span>
+    <span><i class="sw"></i>intensity V → VIII</span>
   </div>
 </section>
 
@@ -68,6 +87,8 @@
   <div class="col">
     <h2 id="sumTitle">After the shaking</h2>
     <p id="sumText"></p>
+    <div class="stats" id="sumStats"></div>
+    <h3>All magnitudes</h3>
     <div class="tablewrap"><table class="plain" id="magTable"></table></div>
   </div>
 </section>
@@ -90,6 +111,11 @@
         İBB's age and height data. Each building's chance of complete or extensive damage is averaged over the 80
         earthquakes, and one plausible outcome is drawn from those chances; each drawn building fails at a random
         moment while it shakes. Run it again with another magnitude and different buildings fail.</li>
+      <li><strong>Streets and hospitals.</strong> 20,700 km of OpenStreetMap roads. A collapsing building throws debris
+        about half its height into the street; a segment counts as blocked when less than 3 m stay open, from the moment
+        its first neighbour collapses. Travel times to the nearest of 417 hospitals use typical speeds per road type on
+        what is left of the network, without traffic. "Cut off" marks squares normally within 30 minutes of a hospital
+        that are more than 30 minutes away afterwards. Hospitals themselves are not damaged in this model.</li>
       <li><strong>Calibration.</strong> Uncalibrated, ESRM20's fragility curves predict about four times İBB's damage
         estimate. Here all curves are stretched by one factor (<span id="calF">2.3</span>×) so that Mw 7.5 matches
         İBB's 46,600 very heavily or heavily damaged buildings; the other magnitudes keep that factor. Deaths follow

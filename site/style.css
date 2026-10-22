@@ -168,3 +168,31 @@ table.plain td.n { text-align: right; }
 }
 
 .tablewrap { overflow-x: auto; max-width: 100%; }
+
+/* earthquake animation v2 */
+.qcontrols { width: 360px; }
+.qtimeline { position: relative; padding-bottom: 12px; }
+.qtimeline #scrub { width: 100%; }
+.qmarks { position: absolute; left: 0; right: 0; bottom: 0; height: 10px; }
+.qmarks i { position: absolute; width: 2px; height: 8px; background: #a9a395; transform: translateX(-1px); cursor: help; }
+.qmarks i.s { background: #e8643a; } .qmarks i.p { background: #6da7ec; } .qmarks i.r { background: #ff5a36; height: 10px; }
+.qlayers { display: flex; flex-wrap: wrap; gap: 6px; }
+.qlayers label { cursor: pointer; }
+.qlayers input { display: none; }
+.qlayers span { display: inline-block; padding: 4px 9px; border: 1px solid rgba(255,255,255,.25); color: #a9a395; font-size: 12px; }
+.qlayers input:checked + span { background: rgba(236,232,223,.14); color: #fff; border-color: rgba(255,255,255,.55); }
+.qstats { width: 310px; }
+.qcard { grid-column: 1 / -1; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); padding: 10px; }
+.qcard-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 14px; }
+.qtag { font-size: 11px; padding: 2px 7px; background: #4a4e57; color: #fff; text-transform: uppercase; letter-spacing: .05em; }
+.qtag.p { background: #2a5d99; } .qtag.s { background: #c24a28; } .qtag.done { background: #6b5249; }
+.qcard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-bottom: 6px; }
+.qcard-grid span { display: block; color: #a9a395; font-size: 11px; } .qcard-grid b { font-size: 14px; font-variant-numeric: tabular-nums; }
+.qcard-line { font-size: 12px; color: #d8d2c6; margin-bottom: 6px; line-height: 1.4; }
+.qcard-foot { font-size: 11px; color: #7d786d; margin-top: 3px; }
+.qlegend .bar.st { width: 16px; height: 4px; background: #ff3b2f; vertical-align: 2px; }
+.qlegend .bar.sm { width: 16px; height: 2px; background: #f0a23c; vertical-align: 3px; }
+.qlegend .sq.cut { width: 10px; height: 10px; background: #8f7cf0; opacity: .8; }
+#sumStats { margin: 22px 0 8px; }
+.qplaces tr.sel td { color: #fff; font-weight: 600; }
+.qplaces tr.sel td:first-child { box-shadow: inset 2px 0 0 #e8643a; padding-left: 6px; }

@@ -356,6 +356,24 @@ Mw 6.5, 7.0, 7.2, 7.5 or 7.7 ([`scripts/istanbul_animation.py`](scripts/istanbul
 | 7.5 | 120 km | 30.7 K | 15.9 K | 6.3 K | 4.5 s |
 | 7.7 | 160 km | 35.1 K | 18.3 K | 7.0 K | 6.6 s |
 
+**Streets and hospitals.** As each building collapses, the street segments its debris blocks (less than
+3 m left open) turn red on the map. Travel times to the nearest of 417 hospitals are recomputed on what
+is left of the 20,700 km network; squares normally within 30 minutes that end up further away are marked
+as cut off. A place card shows each district's P and S arrival, intensity, warning time and its
+nearest hospital before and after.
+
+| Mw | Streets blocked | of which main roads | Residents cut off (> 30 min) |
+|---:|---:|---:|---:|
+| 6.5 | 269 km | 1.5 km | 153 K |
+| 7.0 | 458 km | 1.2 km | 181 K |
+| 7.2 | 588 km | 2.4 km | 197 K |
+| 7.5 | 787 km | 3.0 km | 319 K |
+| 7.7 | 793 km | 2.6 km | 375 K |
+
+Debris mostly closes narrow residential streets; main roads are wide enough to stay open, so the
+network stays connected and most of the city keeps a hospital within reach. Bridges, tunnels,
+traffic and hospital damage are not modelled.
+
 ## Responsible use
 
 The output is a **ranking of where to look first**, meant to sit next to expert image analysts and

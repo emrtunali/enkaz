@@ -79,6 +79,99 @@ def fault_line(path: Path) -> np.ndarray:
     return np.array(west + main)
 
 
+ROAD_CLASSES = list(S.ROAD_KMH)
+MAJOR = {
+    "motorway",
+    "trunk",
+    "primary",
+    "secondary",
+    "motorway_link",
+    "trunk_link",
+    "primary_link",
+    "secondary_link",
+}
+
+
+def road_network(sc, inv, exp_storeys):
+    """Road graph, building-street pairs a collapse could block, hospitals (scenario caches)."""
+    import pickle
+
+    import shapely
+    from scipy.spatial import cKDTree
+
+    net = pickle.loads((sc.CACHE / "network.pkl").read_bytes())
+    feats = json.loads((sc.DATA / "mahalle.geojson").read_text())["features"]
+    tree = shapely.STRtree([shapely.geometry.shape(f["geometry"]) for f in feats])
+
+    def inside(lon, lat):
+        pi, gi = tree.query(shapely.points(lon, lat), predicate="within")
+        out = np.full(len(lon), -1)
+        out[pi] = gi
+        return out
+
+    g = sc.build_graph(net["edges"], inside)
+    pairs = sc.building_edge_pairs(inv, exp_storeys * S.STOREY_M, g)
+    h = np.array([(x, y) for x, y, _ in net["hosp"]], float)
+    hin = inside(h[:, 0], h[:, 1]) >= 0
+    hosp = [(float(x), float(y), n) for (x, y, n), k in zip(net["hosp"], hin) if k]
+    main_nodes = np.flatnonzero(g["node_main"])
+    kd = cKDTree(np.column_stack([g["nx"][main_nodes], g["ny"][main_nodes]]))
+    hx, hy = sc.to_utm(np.array([x for x, _, _ in hosp]), np.array([y for _, y, _ in hosp]))
+    hnode = main_nodes[kd.query(np.column_stack([hx, hy]))[1]]
+    a_lon, a_lat = sc.to_lonlat(g["ax"], g["ay"])
+    b_lon, b_lat = sc.to_lonlat(g["bx"], g["by"])
+    g["lonlat"] = np.column_stack([a_lon, a_lat, b_lon, b_lat])
+    g["cls_code"] = np.array([ROAD_CLASSES.index(c) for c in g["cls"]], np.uint8)
+    return g, pairs, hosp, hnode, kd, main_nodes
+
+
+def csr(g, blocked):
+    from scipy.sparse import coo_matrix
+
+    ok = ~blocked
+    n = len(g["nx"])
+    w = g["time"][ok]
+    u, v = g["iu"][ok], g["iv"][ok]
+    return coo_matrix(
+        (np.concatenate([w, w]), (np.concatenate([u, v]), np.concatenate([v, u]))), shape=(n, n)
+    ).tocsr()
+
+
+def route(sc, graph, src, hnode, hosp, g):
+    """Fastest route from node ``src`` to the nearest hospital: minutes, name, lon/lat path."""
+    from scipy.sparse.csgraph import dijkstra
+
+    dist, pred = dijkstra(graph, indices=src, return_predecessors=True)
+    k = int(np.argmin(dist[hnode]))
+    if not np.isfinite(dist[hnode[k]]):
+        return {"min": None, "hospital": None, "path": []}
+    path, n = [], int(hnode[k])
+    while n >= 0 and n != src:
+        path.append(n)
+        n = int(pred[n])
+    path.append(src)
+    lon, lat = sc.to_lonlat(g["nx"][path[::-1]], g["ny"][path[::-1]])
+    return {
+        "min": round(float(dist[hnode[k]]) / 60, 1),
+        "hospital": hosp[k][2] or "hospital",
+        "path": [[round(float(x), 5), round(float(y), 5)] for x, y in zip(lon, lat)],
+    }
+
+
+def write_edges(path, g, idx, t=None):
+    """Road segments as a small binary file: n, 4 x int32 coordinates, uint16 length (m),
+    uint16 time (0.1 s, optional), uint8 road class."""
+    c = g["lonlat"][idx]
+    with open(path, "wb") as f:
+        f.write(np.uint32(len(idx)).tobytes())
+        for k, o in ((0, LON0), (1, LAT0), (2, LON0), (3, LAT0)):
+            f.write(np.round((c[:, k] - o) * 1e5).astype(np.int32).tobytes())
+        f.write(np.minimum(g["length"][idx], 65535).astype(np.uint16).tobytes())
+        if t is not None:
+            f.write(np.round(t * 10).astype(np.uint16).tobytes())
+        f.write(g["cls_code"][idx].tobytes())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--faults", type=Path, required=True)
@@ -142,6 +235,26 @@ def main():
             )
         return exc, fr
 
+    from scipy.sparse.csgraph import dijkstra
+
+    g, pairs, hosp, hnode, kd, main_nodes = road_network(sc, inv, P["exp_storeys"][prof])
+    print(
+        f"roads: {len(g['iu']):,} segments, {len(pairs['b']):,} building-street pairs, "
+        f"{len(hosp)} hospitals",
+        flush=True,
+    )
+    (OUT / "hospitals.json").write_text(
+        json.dumps([[round(x, 5), round(y, 5), n] for x, y, n in hosp], ensure_ascii=False)
+    )
+    ccx, ccy = sc.to_utm(cells["lon"], cells["lat"])
+    cell_node = main_nodes[kd.query(np.column_stack([ccx, ccy]))[1]]
+    base_graph = csr(g, np.zeros(len(g["iu"]), bool))
+    t_base = dijkstra(base_graph, indices=np.unique(hnode), min_only=True)[cell_node] / 60
+    cell_pop = np.bincount(cells["cell"], occ, minlength=nc)
+    px, py = sc.to_utm(
+        np.array([v[0] for v in PLACES.values()]), np.array([v[1] for v in PLACES.values()])
+    )
+    place_node = dict(zip(PLACES, main_nodes[kd.query(np.column_stack([px, py]))[1]]))
     line = fault_line(a.faults)
     lx, ly = sc.to_utm(line[:, 0], line[:, 1])
     line_km = np.column_stack([np.asarray(lx), np.asarray(ly)]) / 1000
@@ -225,6 +338,35 @@ def main():
             f.write(np.round(t_hit * 10).astype(np.uint16).tobytes())
             f.write(cls[hit].tobytes())
         deaths_cell = np.bincount(p_cell, p_occ * fr_m, minlength=nc)
+        # streets: a segment is blocked from the moment its first neighbour collapses onto it
+        t_col = np.full(len(prof), np.inf)
+        t_col[hit[cls[hit] == 4]] = t_hit[cls[hit] == 4]
+        t_edge = np.full(len(g["iu"]), np.inf)
+        np.minimum.at(t_edge, pairs["e"], t_col[pairs["b"]])
+        blocked = np.isfinite(t_edge)
+        bidx = np.flatnonzero(blocked)
+        bidx = bidx[np.argsort(t_edge[bidx])]
+        write_edges(OUT / f"{tag}_roads.bin", g, bidx, t_edge[bidx])
+        after_graph = csr(g, blocked)
+        t_after = dijkstra(after_graph, indices=np.unique(hnode), min_only=True)[cell_node] / 60
+        cut = (t_base <= 30) & (t_after > 30)
+        place_routes = {}
+        for pname in place_cell:
+            src = int(place_node[pname])
+            place_routes[pname] = {
+                "before": route(sc, base_graph, src, hnode, hosp, g),
+                "after": route(sc, after_graph, src, hnode, hosp, g),
+            }
+        is_major = np.isin(g["cls"][bidx], list(MAJOR))
+        roads = {
+            "segments": int(len(bidx)),
+            "km": round(float(g["length"][bidx].sum()) / 1000, 1),
+            "major_km": round(float(g["length"][bidx][is_major].sum()) / 1000, 1),
+            "major_segments": int(is_major.sum()),
+            "network_km": round(float(g["length"].sum()) / 1000),
+            "cut_off_people": round(float(cell_pop[cut].sum())),
+            "cut_off_share": round(float(cell_pop[cut].sum() / cell_pop.sum()), 4),
+        }
         q = lambda x, p: float(np.percentile(x, p))  # noqa: E731
         meta = {
             "mag": M,
@@ -256,6 +398,8 @@ def main():
                 "dur": np.round(dur, 1).tolist(),
                 "mmi": np.round(mmi, 1).tolist(),
                 "deaths": np.round(deaths_cell, 2).tolist(),
+                "t0": np.round(np.minimum(t_base, 999), 1).tolist(),
+                "t1": np.round(np.minimum(t_after, 999), 1).tolist(),
             },
             "places": {
                 p: {
@@ -267,6 +411,8 @@ def main():
                 for p, c in place_cell.items()
             },
             "end_s": round(float((ts + dur).max()) + 3, 1),
+            "roads": roads,
+            "routes": place_routes,
         }
         (OUT / f"{tag}.json").write_text(
             json.dumps(meta, separators=(",", ":"), ensure_ascii=False)
@@ -282,6 +428,9 @@ def main():
                 "deaths": meta["expected"]["deaths"],
                 "fatih_mmi": f["mmi"],
                 "warning_s": round(f["ts"] - f["tp"], 1),
+                "roads_km": roads["km"],
+                "major_km": roads["major_km"],
+                "cut_off_people": roads["cut_off_people"],
             }
         )
         print(
@@ -292,7 +441,15 @@ def main():
             flush=True,
         )
     (OUT / "index.json").write_text(
-        json.dumps({"magnitudes": index, "origin": [LON0, LAT0], "calibration": round(scale, 3)})
+        json.dumps(
+            {
+                "magnitudes": index,
+                "origin": [LON0, LAT0],
+                "calibration": round(scale, 3),
+                "road_classes": ROAD_CLASSES,
+                "major": sorted(MAJOR),
+            }
+        )
     )
 
 
